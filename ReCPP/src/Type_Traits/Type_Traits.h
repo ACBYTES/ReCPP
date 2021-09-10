@@ -16,11 +16,24 @@ namespace ACBYTES
 	};
 #pragma endregion is_same
 
+#pragma region conditional
 	template <typename T, typename T1, bool Value>
 	struct conditional
 	{
-		//typedef int result;
 	};
+
+	template <typename T, typename T1>
+	struct conditional<T, T1, true>
+	{
+		typedef T result;
+	};
+
+	template <typename T, typename T1>
+	struct conditional<T, T1, false>
+	{
+		typedef T1 result;
+	};
+#pragma endregion conditional
 
 	template <typename T>
 	struct is_const
@@ -28,9 +41,9 @@ namespace ACBYTES
 		static constexpr bool value = is_same<const T, T>::value;
 	};
 
-	//template <typename T>
-	//struct add_const
-	//{
-	//	typedef  T type;
-	//};
+	template <typename T>
+	struct add_const
+	{
+		typedef const T type;
+	};
 }

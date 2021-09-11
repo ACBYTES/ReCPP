@@ -46,4 +46,10 @@ namespace ACBYTES
 	{
 		typedef const T type;
 	};
+
+	template <typename T>
+	struct add_cv
+	{
+		typedef const volatile T type;
+	};
 }

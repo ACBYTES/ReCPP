@@ -19,9 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Functional\Function.cpp" />
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Functional\Function.h" />
     <ClInclude Include="src\Type_Traits\Type_Traits.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

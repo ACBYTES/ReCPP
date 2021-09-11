@@ -56,7 +56,6 @@ namespace ACBYTES
 	/*
 	A function wrapper that can deal with static, non-static, and member functions.
 	@tparam RT Return type of the function.
-	@tparam Class Class that contains the function.
 	@tparam ArgT Arguments that should be passed to the function.
 	*/
 	template <typename RT, typename... ArgT>

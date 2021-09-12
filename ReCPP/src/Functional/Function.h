@@ -126,20 +126,28 @@ namespace ACBYTES
 		};
 
 	public:
-		template<typename RT>
-		static Func<RT, void> WrapFunction(typename Func<RT, void>::funcType FunctionPointer)
+		/*
+		* Wraps non-member function in a Func class.
+		* @param RT [Return Type of the Function].
+		* @param ArgT [Type of the Argumetns Passed to the Function].
+		* @param FunctionPointer [Target Function]
+		*/
+		template<typename RT, typename... ArgT>
+		static Func<RT, void, ArgT...> WrapFunction(typename Func<RT, void, ArgT...>::funcType FunctionPointer)
 		{
-			return Func<RT, void>(FunctionPointer);
+			return Func<RT, void, ArgT...>(FunctionPointer);
 		}
 
-		template<typename RT, typename Class>
-		static Func<RT, Class> WrapFunction(Class* ClassPointer, typename Func<RT, Class>::funcType FunctionPointer)
-		{
-			return Func<RT, Class>(ClassPointer, FunctionPointer);
-		}
-
+		/*
+		* Wraps member function in a Func class.
+		* @param RT [Return Type of the Function].
+		* @param Class [Containing Class Type].
+		* @param ArgT [Type of the Argumetns Passed to the Function].
+		* @param ClassPointer [Instance of Class].
+		* @param FunctionPointer [Target Function]
+		*/
 		template<typename RT, typename Class, typename... ArgT>
-		static Func<RT, Class, ArgT...> WrapFunction(Class* ClassPointer, typename Func<RT, Class>::funcType FunctionPointer)
+		static Func<RT, Class, ArgT...> WrapFunction(Class* ClassPointer, typename Func<RT, Class, ArgT...>::funcType FunctionPointer)
 		{
 			return Func<RT, Class, ArgT...>(ClassPointer, FunctionPointer);
 		}

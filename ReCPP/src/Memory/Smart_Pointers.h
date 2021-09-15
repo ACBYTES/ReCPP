@@ -74,6 +74,15 @@ namespace ACBYTES
 			return _ptr;
 		}
 
+		template <size_t ArrSize>
+		void Fill(T(&Array)[ArrSize])
+		{
+			for (size_t i = 0; i < ArrSize; i++)
+			{
+				Array[i] = *(_ptr + i);
+			}
+		}
+
 		T& operator [](size_t Index)
 		{
 			return *(_ptr + Index);
@@ -282,6 +291,15 @@ namespace ACBYTES
 		T* Get()
 		{
 			return _ptr;
+		}
+
+		template <size_t ArrSize>
+		void Fill(T(&Array)[ArrSize])
+		{
+			for (size_t i = 0; i < ArrSize; i++)
+			{
+				Array[i] = *(_ptr + i);
+			}
 		}
 
 		T& operator [](size_t Index)

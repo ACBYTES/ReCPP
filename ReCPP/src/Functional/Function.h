@@ -2,6 +2,9 @@
 #include <utility>
 #include "../Memory/Smart_Pointers.h"
 
+//If enabled, function classes initialized with a shared pointer (ACBYTES::Shared_Ptr) will keep a copy of the shared pointer to avoid the function containing class from getting deleted. If initialized using the pure pointer constructor, shared pointer to the class will be initialized using nullptr.
+#define SHARED_PTR_FUNCTIONS 0
+
 namespace ACBYTES
 {
 	class Function
@@ -22,14 +25,23 @@ namespace ACBYTES
 			Class* _class;
 			funcType _funcPtr;
 
+#if SHARED_PTR_FUNCTIONS
+			Shared_Ptr<Class> _shared_class_ptr;
+#endif //SHARED_PTR_FUNCTIONS
+
 		public:
 			Func(Class* ClassPtr, funcType FuncPtr) : _class(ClassPtr), _funcPtr(FuncPtr)
+#if SHARED_PTR_FUNCTIONS
+				, _shared_class_ptr(nullptr)
+#endif
 			{
 			}
 
-			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr)
+#if SHARED_PTR_FUNCTIONS
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(std::move(ClassPtr))
 			{
 			}
+#endif //SHARED_PTR_FUNCTIONS
 
 			RT operator()(ArgT... Args)
 			{
@@ -54,14 +66,24 @@ namespace ACBYTES
 			Class* _class;
 			funcType _funcPtr;
 
+#if SHARED_PTR_FUNCTIONS
+			Shared_Ptr<Class> _shared_class_ptr;
+#endif // SHARED_PTR_FUNCTIONS
+
+
 		public:
 			Func(Class* ClassPtr, funcType FuncPtr) : _class(ClassPtr), _funcPtr(FuncPtr)
+#if SHARED_PTR_FUNCTIONS
+				, _shared_class_ptr(nullptr)
+#endif
 			{
 			}
 
-			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr)
+#if SHARED_PTR_FUNCTIONS
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(std::move(ClassPtr))
 			{
 			}
+#endif // SHARED_PTR_FUNCTIONS
 
 			RT operator()(void)
 			{
@@ -163,6 +185,8 @@ namespace ACBYTES
 			return Function::Func<RT, Class, ArgT...>(ClassPointer, FunctionPointer);
 		}
 
+#if SHARED_PTR_FUNCTIONS
+
 		/*
 		* Wraps member function in a Func class.
 		* @param RT [Return Type of the Function].
@@ -176,5 +200,6 @@ namespace ACBYTES
 		{
 			return Function::Func<RT, Class, ArgT...>(std::move(ClassPointer), FunctionPointer);
 		}
+#endif //SHARED_PTR_FUNCTIONS
 	};
 }

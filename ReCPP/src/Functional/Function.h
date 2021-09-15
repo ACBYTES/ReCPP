@@ -1,5 +1,6 @@
 #pragma once
 #include <utility>
+#include "../Memory/Smart_Pointers.h"
 
 namespace ACBYTES
 {
@@ -22,10 +23,12 @@ namespace ACBYTES
 			funcType _funcPtr;
 
 		public:
-			Func(Class* ClassPtr, funcType FuncPtr)
+			Func(Class* ClassPtr, funcType FuncPtr) : _class(ClassPtr), _funcPtr(FuncPtr)
 			{
-				_class = ClassPtr;
-				_funcPtr = FuncPtr;
+			}
+
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr)
+			{
 			}
 
 			RT operator()(ArgT... Args)
@@ -33,7 +36,6 @@ namespace ACBYTES
 				return (_class->*_funcPtr)(std::forward<ArgT>(Args)...);
 			}
 
-		private:
 			Func() = delete;
 		};
 
@@ -53,10 +55,12 @@ namespace ACBYTES
 			funcType _funcPtr;
 
 		public:
-			Func(Class* ClassPtr, funcType FuncPtr)
+			Func(Class* ClassPtr, funcType FuncPtr) : _class(ClassPtr), _funcPtr(FuncPtr)
 			{
-				_class = ClassPtr;
-				_funcPtr = FuncPtr;
+			}
+
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr)
+			{
 			}
 
 			RT operator()(void)
@@ -64,7 +68,6 @@ namespace ACBYTES
 				return (_class->*_funcPtr)();
 			}
 
-		private:
 			Func() = delete;
 		};
 
@@ -83,9 +86,8 @@ namespace ACBYTES
 			funcType _funcPtr;
 
 		public:
-			Func(funcType FuncPtr)
+			Func(funcType FuncPtr) : _funcPtr(FuncPtr)
 			{
-				_funcPtr = FuncPtr;
 			}
 
 			RT operator()(ArgT... Args)
@@ -93,7 +95,6 @@ namespace ACBYTES
 				return _funcPtr(std::forward<ArgT>(Args)...);
 			}
 
-		private:
 			Func() = delete;
 		};
 
@@ -111,9 +112,8 @@ namespace ACBYTES
 			funcType _funcPtr;
 
 		public:
-			Func(funcType FuncPtr)
+			Func(funcType FuncPtr) : _funcPtr(FuncPtr)
 			{
-				_funcPtr = FuncPtr;
 			}
 
 			RT operator()(void)
@@ -121,35 +121,60 @@ namespace ACBYTES
 				return _funcPtr();
 			}
 
-		private:
 			Func() = delete;
 		};
 
 	public:
+
 		/*
 		* Wraps non-member function in a Func class.
 		* @param RT [Return Type of the Function].
-		* @param ArgT [Type of the Argumetns Passed to the Function].
+		* @param ArgT [Type of the Arguments Passed to the Function].
+		* @param FunctionPointer [Target Function]
+		*/
+		static Function::Func<void, void> WrapFunction(typename Function::Func<void, void>::funcType FunctionPointer)
+		{
+			return Function::Func<void, void>(FunctionPointer);
+		}
+
+		/*
+		* Wraps non-member function in a Func class.
+		* @param RT [Return Type of the Function].
+		* @param ArgT [Type of the Arguments Passed to the Function].
 		* @param FunctionPointer [Target Function]
 		*/
 		template<typename RT, typename... ArgT>
-		static Func<RT, void, ArgT...> WrapFunction(typename Func<RT, void, ArgT...>::funcType FunctionPointer)
+		static Function::Func<RT, void, ArgT...> WrapFunction(typename Function::Func<RT, void, ArgT...>::funcType FunctionPointer)
 		{
-			return Func<RT, void, ArgT...>(FunctionPointer);
+			return Function::Func<RT, void, ArgT...>(FunctionPointer);
 		}
 
 		/*
 		* Wraps member function in a Func class.
 		* @param RT [Return Type of the Function].
 		* @param Class [Containing Class Type].
-		* @param ArgT [Type of the Argumetns Passed to the Function].
-		* @param ClassPointer [Instance of Class].
+		* @param ArgT [Type of the Arguments Passed to the Function].
+		* @param ClassPointer [Pointer to instance of Class].
 		* @param FunctionPointer [Target Function]
 		*/
 		template<typename RT, typename Class, typename... ArgT>
-		static Func<RT, Class, ArgT...> WrapFunction(Class* ClassPointer, typename Func<RT, Class, ArgT...>::funcType FunctionPointer)
+		static Function::Func<RT, Class, ArgT...> WrapFunction(Class* ClassPointer, typename Function::Func<RT, Class, ArgT...>::funcType FunctionPointer)
 		{
-			return Func<RT, Class, ArgT...>(ClassPointer, FunctionPointer);
+			return Function::Func<RT, Class, ArgT...>(ClassPointer, FunctionPointer);
+		}
+
+		/*
+		* Wraps member function in a Func class.
+		* @param RT [Return Type of the Function].
+		* @param Class [Containing Class Type].
+		* @param ArgT [Type of the Arguments Passed to the Function].
+		* @param ClassPointer [Shared pointer to an instance of Class].
+		* @param FunctionPointer [Target Function]
+		*/
+		template<typename RT, typename Class, typename... ArgT>
+		static Function::Func<RT, Class, ArgT...> WrapFunction(Shared_Ptr<Class> ClassPointer, typename Function::Func<RT, Class, ArgT...>::funcType FunctionPointer)
+		{
+			return Function::Func<RT, Class, ArgT...>(std::move(ClassPointer), FunctionPointer);
 		}
 	};
 }

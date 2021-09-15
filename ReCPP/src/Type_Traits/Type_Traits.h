@@ -35,6 +35,34 @@ namespace ACBYTES
 	};
 #pragma endregion conditional
 
+#pragma region is_pointer
+	template <typename T>
+	struct is_pointer
+	{
+		static constexpr bool value = false;
+	};
+
+	template <typename T>
+	struct is_pointer<T*>
+	{
+		static constexpr bool value = true;
+	};
+#pragma endregion is_pointer
+
+#pragma region is_array
+	template <typename T>
+	struct is_array
+	{
+		static constexpr bool value = false;
+	};
+
+	template <typename T>
+	struct is_array<T[]>
+	{
+		static constexpr bool value = true;
+	};
+#pragma endregion is_array
+
 	template <typename T>
 	struct is_const
 	{

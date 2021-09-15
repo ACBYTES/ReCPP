@@ -23,6 +23,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Functional\Function.h" />
+    <ClInclude Include="src\Macro_Definitions\Definitions.h" />
+    <ClInclude Include="src\Memory\Smart_Pointers.h" />
     <ClInclude Include="src\Type_Traits\Type_Traits.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -80,6 +82,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(Configuration)\Intermediate\</IntDir>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>

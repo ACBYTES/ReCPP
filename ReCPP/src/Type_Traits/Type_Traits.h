@@ -63,6 +63,19 @@ namespace ACBYTES
 	};
 #pragma endregion is_array
 
+#pragma region enable_if
+	template <bool V, typename T = void>
+	struct enable_if
+	{
+	};
+
+	template <typename T>
+	struct enable_if<true, T>
+	{
+		typedef T type;
+	};
+#pragma endregion enable_if
+
 	template <typename T>
 	struct is_const
 	{

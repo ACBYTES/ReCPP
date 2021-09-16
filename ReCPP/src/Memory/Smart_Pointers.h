@@ -1,7 +1,7 @@
 #pragma once
 #include <utility>
 #include <vector>
-#include "../Macro_Definitions/Definitions.h"
+#include "Definitions.h"
 
 namespace ACBYTES
 {
@@ -10,6 +10,7 @@ namespace ACBYTES
 	class Unique_Ptr
 	{
 		T* _ptr;
+		bool _moved = false;
 
 	public:
 
@@ -19,7 +20,7 @@ namespace ACBYTES
 
 		~Unique_Ptr()
 		{
-			if (_ptr)
+			if (_ptr && !_moved)
 				delete _ptr;
 		}
 
@@ -28,7 +29,7 @@ namespace ACBYTES
 			return _ptr != nullptr;
 		}
 
-		T* Get()
+		T* Get() const
 		{
 			return _ptr;
 		}
@@ -40,8 +41,10 @@ namespace ACBYTES
 
 		Unique_Ptr(const Unique_Ptr&) = delete;
 		Unique_Ptr& operator =(const Unique_Ptr&) = delete;
-		Unique_Ptr(Unique_Ptr&&) noexcept
+		Unique_Ptr(Unique_Ptr&& R) noexcept
 		{
+			R._moved = true;
+			_ptr = R._ptr;
 		}
 	};
 
@@ -49,18 +52,19 @@ namespace ACBYTES
 	class Unique_Ptr<T[]>
 	{
 		T* _ptr;
+		size_t size;
+		bool _moved = false;
 
 	public:
 
-		const size_t Size;
 
-		[[nodiscard]] Unique_Ptr(T* ArrPtr, size_t _Size) : _ptr(ArrPtr), Size(_Size)
+		[[nodiscard]] Unique_Ptr(T* ArrPtr, size_t Size) : _ptr(ArrPtr), size(Size)
 		{
 		}
 
 		~Unique_Ptr()
 		{
-			if (_ptr)
+			if (_ptr && !_moved)
 				delete[] _ptr;
 		}
 
@@ -69,7 +73,12 @@ namespace ACBYTES
 			return _ptr != nullptr;
 		}
 
-		T* Get()
+		size_t Size() const
+		{
+			return size;
+		}
+
+		T* Get() const
 		{
 			return _ptr;
 		}
@@ -90,8 +99,11 @@ namespace ACBYTES
 
 		Unique_Ptr(const Unique_Ptr&) = delete;
 		Unique_Ptr& operator =(const Unique_Ptr&) = delete;
-		Unique_Ptr(Unique_Ptr&&) noexcept
+		Unique_Ptr(Unique_Ptr&& R) noexcept
 		{
+			R._moved = true;
+			_ptr = R._ptr;
+			size = R.size;
 		}
 	};
 
@@ -242,7 +254,7 @@ namespace ACBYTES
 			Shared_Ptr_Container::RemoveReference(_ptr);
 		}
 
-		T* Get()
+		T* Get() const
 		{
 			return _ptr;
 		}
@@ -259,12 +271,11 @@ namespace ACBYTES
 	class Shared_Ptr<T[]>
 	{
 		T* _ptr;
+		size_t size;
 
 	public:
 
-		const size_t Size;
-
-		[[nodiscard]] Shared_Ptr(T* Ptr, size_t _Size) : _ptr(Ptr), Size(_Size)
+		[[nodiscard]] Shared_Ptr(T* Ptr, size_t Size) : _ptr(Ptr), size(Size)
 		{
 			Shared_Ptr_Container::AddNewReference(Ptr);
 		}
@@ -273,14 +284,14 @@ namespace ACBYTES
 		{
 			Shared_Ptr_Container::AddNewReference(Ref._ptr);
 			_ptr = Ref._ptr;
-			Size = Ref.Size;
+			size = Ref.Size();
 		}
 
 		Shared_Ptr(Shared_Ptr&& Rvf) noexcept
 		{
 			Shared_Ptr_Container::AddNewReference(Rvf._ptr);
 			_ptr = Rvf._ptr;
-			Size = Rvf.Size;
+			size = Rvf.Size();
 		}
 
 		~Shared_Ptr()
@@ -288,7 +299,12 @@ namespace ACBYTES
 			Shared_Ptr_Container::RemoveReference(_ptr);
 		}
 
-		T* Get()
+		size_t Size() const
+		{
+			return size;
+		}
+
+		T* Get() const
 		{
 			return _ptr;
 		}
@@ -346,4 +362,68 @@ namespace ACBYTES
 		return Shared_Ptr<T[]>(_init, size);
 	}
 #pragma endregion Shared_Ptr
+	template <typename T>
+	class Weak_Ptr
+	{
+		T* _ptr;
+
+	public:
+		Weak_Ptr(const Shared_Ptr<T>& Ref)
+		{
+			_ptr = static_cast<Shared_Ptr<T>>(Ref).Get();
+		}
+
+		Weak_Ptr()
+		{
+		}
+
+		T* Get() const
+		{
+			return _ptr;
+		}
+
+		T* operator ->()
+		{
+			return _ptr;
+		}
+	};
+
+	template <typename T>
+	class Weak_Ptr<T[]>
+	{
+		T* _ptr;
+		size_t size;
+
+	public:
+
+
+		Weak_Ptr(const Shared_Ptr<T[]>& Ref)
+		{
+			_ptr = Ref.Get();
+			size = Ref.Size();
+		}
+
+		Weak_Ptr()
+		{
+		}
+
+		T* Get() const
+		{
+			return _ptr;
+		}
+
+		template <size_t ArrSize>
+		void Fill(T(&Array)[ArrSize])
+		{
+			for (size_t i = 0; i < ArrSize; i++)
+			{
+				Array[i] = *(_ptr + i);
+			}
+		}
+
+		T& operator [](size_t Index)
+		{
+			return *(_ptr + Index);
+		}
+	};
 }

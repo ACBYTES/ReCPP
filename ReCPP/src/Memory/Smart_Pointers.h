@@ -2,6 +2,7 @@
 #include <utility>
 #include <vector>
 #include "Definitions.h"
+#include <Type_Traits.h>
 
 namespace ACBYTES
 {
@@ -9,10 +10,14 @@ namespace ACBYTES
 	template <typename T>
 	class Unique_Ptr
 	{
-		T* _ptr;
+		T* _ptr = nullptr;
 		bool _moved = false;
 
 	public:
+
+		[[nodiscard]] Unique_Ptr() //Empty pointer.
+		{
+		}
 
 		[[nodiscard]] Unique_Ptr(T* Ptr) : _ptr(Ptr)
 		{
@@ -24,7 +29,26 @@ namespace ACBYTES
 				delete _ptr;
 		}
 
-		bool Valid()
+		void Swap(Unique_Ptr& Ref)
+		{
+			auto ptr = _ptr;
+			_ptr = Ref._ptr;
+			Ref._ptr = ptr;
+		}
+
+		void Release()
+		{
+			_ptr = nullptr;
+		}
+
+		void Reset(T* Ptr = nullptr)
+		{
+			if (_ptr)
+				delete _ptr;
+			_ptr = Ptr;
+		}
+
+		bool Valid() const
 		{
 			return _ptr != nullptr;
 		}
@@ -51,12 +75,15 @@ namespace ACBYTES
 	template <typename T>
 	class Unique_Ptr<T[]>
 	{
-		T* _ptr;
+		T* _ptr = nullptr;
 		size_t size;
 		bool _moved = false;
 
 	public:
 
+		[[nodiscard]] Unique_Ptr() //Empty pointer.
+		{
+		}
 
 		[[nodiscard]] Unique_Ptr(T* ArrPtr, size_t Size) : _ptr(ArrPtr), size(Size)
 		{
@@ -68,7 +95,38 @@ namespace ACBYTES
 				delete[] _ptr;
 		}
 
-		bool Valid()
+		void Swap(Unique_Ptr& Ref)
+		{
+			auto ptr = _ptr;
+			auto _size = size;
+			_ptr = Ref._ptr;
+			size = Ref.size;
+			Ref._ptr = ptr;
+			Ref.size = _size;
+		}
+
+		void Release()
+		{
+			_ptr = nullptr;
+		}
+
+		void Reset(T* Ptr, size_t Size)
+		{
+			if (_ptr)
+				delete[] _ptr;
+			_ptr = Ptr;
+			size = Size;
+		}
+
+		void Reset(T* Ptr = nullptr) //Unable to resolve size
+		{
+			if (_ptr)
+				delete[] _ptr;
+			_ptr = Ptr;
+			size = size_t();
+		}
+
+		bool Valid() const
 		{
 			return _ptr != nullptr;
 		}
@@ -84,9 +142,9 @@ namespace ACBYTES
 		}
 
 		template <size_t ArrSize>
-		void Fill(T(&Array)[ArrSize])
+		void Fill(T(&Array)[ArrSize]) const
 		{
-			for (size_t i = 0; i < ArrSize; i++)
+			for (size_t i = 0; i < ArrSize > size ? size : ArrSize; i++)
 			{
 				Array[i] = *(_ptr + i);
 			}
@@ -108,39 +166,39 @@ namespace ACBYTES
 	};
 
 	/*
-	* Makes a unique pointer to type T, constructed with its default constructor.
-	* @param T [Type of the pointer]
+	* Makes unique pointer pointing to an array with the size passed.
 	*/
-	template <typename T>
-	[[nodiscard]] Unique_Ptr<T> Make_Unique()
+	template <typename T, typename ACBYTES::enable_if<ACBYTES::is_array<T>::value, bool>::type = false>
+	[[nodiscard]] auto Make_Unique(const size_t Size)
 	{
-		return Unique_Ptr<T>(new T());
+		using type = typename ACBYTES::remove_array<T>::type;
+		type* _init = new type[Size]{}; //Initialization for possible const types.
+		return Unique_Ptr<T>(_init, Size);
 	}
 
 	/*
-	* Makes a unique pointer to type T using T's constructor that takes ArgT.
-	* @param T [Type of the pointer]
-	* @param ArgT [Constructor argument types]
+	* Makes unique pointer pointing to an array initialized with the initializer list passed.
 	*/
-	template <typename T, typename... ArgT>
-	[[nodiscard]] Unique_Ptr<T> Make_Unique(ArgT... Arguments)
+	template <typename T, typename ACBYTES::enable_if<ACBYTES::is_array<T>::value && !ACBYTES::is_const<T>::value, bool>::type = false> //No const types allowed because the array is going to be filled with the initializer list.
+	[[nodiscard]] auto Make_Unique(std::initializer_list<typename ACBYTES::remove_array<T>::type> List) -> Unique_Ptr<T>
+	{
+		using type = typename ACBYTES::remove_array<T>::type;
+		type* _init = new type[List.size()];
+		for (size_t i = 0; i < List.size(); i++)
+		{
+			_init[i] = *(List.begin() + i);
+		}
+		return Unique_Ptr<T>(_init, List.size());
+	}
+
+	/*
+	* Makes unique pointer pointing to an object of type T.
+	*/
+	template <typename T, typename... ArgT, typename ACBYTES::enable_if<!ACBYTES::is_array<T>::value, bool>::type = false>
+	[[nodiscard]] auto Make_Unique(ArgT... Arguments)
 	{
 		auto _init = new T(std::forward<ArgT>(Arguments)...);
 		return Unique_Ptr<T>(_init);
-	}
-
-	/*
-	* Makes a unique pointer pointing to an array.
-	* @param T [Type of the array]
-	* @param First [First element of the array]
-	* @param Rest [Rest of the elements]
-	*/
-	template <typename T, T First, T... Rest>
-	[[nodiscard]] Unique_Ptr<T[]> Make_Unique()
-	{
-		T* _init = new T[]{ First, Rest... };
-		size_t size = sizeof...(Rest) + 1;
-		return Unique_Ptr<T[]>(_init, size);
 	}
 #pragma endregion Unique_Ptr
 
@@ -151,17 +209,23 @@ namespace ACBYTES
 	private:
 		uint32_t _count = 1;
 		void* _ptr;
+		bool _array;
 
 	public:
 
-		Shared_Reference_Data(void* Ptr) : _ptr(Ptr)
+		Shared_Reference_Data(void* Ptr, bool IsArray) : _ptr(Ptr), _array(IsArray)
 		{
 		}
 
 		~Shared_Reference_Data()
 		{
 			if (_ptr && _count < 1)
-				delete _ptr;
+			{
+				if (_array)
+					delete[] _ptr;
+				else
+					delete _ptr;
+			}
 		}
 
 		bool Dead()
@@ -198,7 +262,7 @@ namespace ACBYTES
 	private:
 		static std::vector<Shared_Reference_Data> references;
 
-		static void AddNewReference(void* Ptr)
+		static void AddNewReference(void* Ptr, bool IsArray = false)
 		{
 			for (auto i = references.begin(); i != references.end(); i++)
 			{
@@ -208,7 +272,7 @@ namespace ACBYTES
 					return;
 				}
 			}
-			references.push_back(Shared_Reference_Data(Ptr));
+			references.push_back(Shared_Reference_Data(Ptr, IsArray));
 		}
 
 		static void RemoveReference(void* Ptr)
@@ -230,28 +294,53 @@ namespace ACBYTES
 	template <typename T>
 	class Shared_Ptr
 	{
-		T* _ptr;
+		T* _ptr = nullptr;
+
 	public:
+
+		[[nodiscard]] Shared_Ptr() //Empty pointer.
+		{
+		}
+
 		[[nodiscard]] Shared_Ptr(T* Ptr) : _ptr(Ptr)
 		{
-			Shared_Ptr_Container::AddNewReference(Ptr);
+			Shared_Ptr_Container::AddNewReference((void*)Ptr);
 		}
 
 		Shared_Ptr(const Shared_Ptr& Ref)
 		{
-			Shared_Ptr_Container::AddNewReference(Ref._ptr);
+			Shared_Ptr_Container::AddNewReference((void*)Ref._ptr);
 			_ptr = Ref._ptr;
 		}
 
 		Shared_Ptr(Shared_Ptr&& Rvf) noexcept
 		{
-			Shared_Ptr_Container::AddNewReference(Rvf._ptr);
+			Shared_Ptr_Container::AddNewReference((void*)Rvf._ptr);
 			_ptr = Rvf._ptr;
 		}
 
 		~Shared_Ptr()
 		{
-			Shared_Ptr_Container::RemoveReference(_ptr);
+			if (_ptr)
+				Shared_Ptr_Container::RemoveReference((void*)_ptr);
+		}
+
+		void Swap(Shared_Ptr& Ref)
+		{
+			auto ptr = _ptr;
+			_ptr = Ref._ptr;
+			Ref._ptr = ptr;
+		}
+
+		void Reset(T* Ptr = nullptr)
+		{
+			if (_ptr)
+				Shared_Ptr_Container::RemoveReference((void*)_ptr);
+
+			if (Ptr)
+				Shared_Ptr_Container::AddNewReference((void*)Ptr);
+
+			_ptr = Ptr;
 		}
 
 		T* Get() const
@@ -263,40 +352,69 @@ namespace ACBYTES
 		{
 			return _ptr;
 		}
-
-		Shared_Ptr() = delete;
 	};
 
 	template <typename T>
 	class Shared_Ptr<T[]>
 	{
-		T* _ptr;
+		T* _ptr = nullptr;
 		size_t size;
 
 	public:
 
+		[[nodiscard]] Shared_Ptr() //Empty pointer.
+		{
+		}
+
 		[[nodiscard]] Shared_Ptr(T* Ptr, size_t Size) : _ptr(Ptr), size(Size)
 		{
-			Shared_Ptr_Container::AddNewReference(Ptr);
+			Shared_Ptr_Container::AddNewReference((void*)Ptr, true);
 		}
 
 		Shared_Ptr(const Shared_Ptr& Ref)
 		{
-			Shared_Ptr_Container::AddNewReference(Ref._ptr);
+			Shared_Ptr_Container::AddNewReference((void*)Ref._ptr, true);
 			_ptr = Ref._ptr;
 			size = Ref.Size();
 		}
 
 		Shared_Ptr(Shared_Ptr&& Rvf) noexcept
 		{
-			Shared_Ptr_Container::AddNewReference(Rvf._ptr);
+			Shared_Ptr_Container::AddNewReference((void*)Rvf._ptr);
 			_ptr = Rvf._ptr;
 			size = Rvf.Size();
 		}
 
 		~Shared_Ptr()
 		{
-			Shared_Ptr_Container::RemoveReference(_ptr);
+			if (_ptr)
+				Shared_Ptr_Container::RemoveReference((void*)_ptr);
+		}
+
+		void Swap(Shared_Ptr& Ref)
+		{
+			auto ptr = _ptr;
+			auto _size = size;
+			_ptr = Ref._ptr;
+			size = Ref.size;
+			Ref._ptr = ptr;
+			Ref.size = _size;
+		}
+
+		void Reset(T* Ptr, size_t Size)
+		{
+			if (_ptr)
+				delete[] _ptr;
+			_ptr = Ptr;
+			size = Size;
+		}
+
+		void Reset(T* Ptr = nullptr) //Unable to resolve size
+		{
+			if (_ptr)
+				delete[] _ptr;
+			_ptr = Ptr;
+			size = size_t();
 		}
 
 		size_t Size() const
@@ -310,9 +428,9 @@ namespace ACBYTES
 		}
 
 		template <size_t ArrSize>
-		void Fill(T(&Array)[ArrSize])
+		void Fill(T(&Array)[ArrSize]) const
 		{
-			for (size_t i = 0; i < ArrSize; i++)
+			for (size_t i = 0; i < ArrSize > size ? size : ArrSize; i++)
 			{
 				Array[i] = *(_ptr + i);
 			}
@@ -322,46 +440,46 @@ namespace ACBYTES
 		{
 			return *(_ptr + Index);
 		}
-
-		Shared_Ptr() = delete;
 	};
 
 	/*
-	* Makes a shared pointer to type T, constructed with its default constructor.
-	* @param T [Type of the pointer]
+	* Makes shared pointer pointing to an array with the size passed.
 	*/
-	template <typename T>
-	[[nodiscard]] Shared_Ptr<T> Make_Shared()
+	template <typename T, typename ACBYTES::enable_if<ACBYTES::is_array<T>::value, bool>::type = false>
+	[[nodiscard]] auto Make_Shared(const size_t Size) -> Shared_Ptr<T>
 	{
-		return Shared_Ptr<T>(new T());
+		using type = typename ACBYTES::remove_array<T>::type;
+		type* _init = new type[Size]{}; //Initialization for possible const types.
+		return Shared_Ptr<T>(_init, Size);
 	}
 
 	/*
-	* Makes a shared pointer to type T using T's constructor that takes ArgT.
-	* @param T [Type of the pointer]
-	* @param ArgT [Constructor argument types]
+	* Makes shared pointer pointing to an array initialized with the initializer list passed.
 	*/
-	template <typename T, typename... ArgT>
-	[[nodiscard]] Shared_Ptr<T> Make_Shared(ArgT... Arguments)
+	template <typename T, typename ACBYTES::enable_if<ACBYTES::is_array<T>::value && !ACBYTES::is_const<T>::value, bool>::type = false> //No const types allowed because the array is going to be filled with the initializer list.
+	[[nodiscard]] auto Make_Shared(std::initializer_list<typename ACBYTES::remove_array<T>::type> List) -> Shared_Ptr<T>
+	{
+		using type = typename ACBYTES::remove_array<T>::type;
+		type* _init = new type[List.size()];
+		for (size_t i = 0; i < List.size(); i++)
+		{
+			_init[i] = *(List.begin() + i);
+		}
+		return Shared_Ptr<T>(_init, List.size());
+	}
+
+	/*
+	* Makes shared pointer pointing to an object of type T.
+	*/
+	template <typename T, typename... ArgT, typename ACBYTES::enable_if<!ACBYTES::is_array<T>::value, bool>::type = false>
+	[[nodiscard]] auto Make_Shared(ArgT... Arguments)
 	{
 		auto _init = new T(std::forward<ArgT>(Arguments)...);
 		return Shared_Ptr<T>(_init);
 	}
-
-	/*
-	* Makes a shared pointer pointing to an array.
-	* @param T [Type of the array]
-	* @param First [First element of the array]
-	* @param Rest [Rest of the elements]
-	*/
-	template <typename T, T First, T... Rest>
-	[[nodiscard]] Shared_Ptr<T[]> Make_Shared()
-	{
-		T* _init = new T[]{ First, Rest... };
-		size_t size = sizeof...(Rest) + 1;
-		return Shared_Ptr<T[]>(_init, size);
-	}
 #pragma endregion Shared_Ptr
+
+#pragma region Weak_Ptr
 	template <typename T>
 	class Weak_Ptr
 	{
@@ -373,8 +491,25 @@ namespace ACBYTES
 			_ptr = static_cast<Shared_Ptr<T>>(Ref).Get();
 		}
 
-		Weak_Ptr()
+		Weak_Ptr() //Empty pointer
 		{
+		}
+
+		[[nodiscard]] Shared_Ptr<T> Lock() const
+		{
+			return _ptr ? Shared_Ptr<T>(_ptr) : Shared_Ptr<T>();
+		}
+
+		void Swap(Weak_Ptr& Ref)
+		{
+			auto ptr = _ptr;
+			_ptr = Ref._ptr;
+			Ref._ptr = ptr;
+		}
+
+		void Reset()
+		{
+			_ptr = nullptr;
 		}
 
 		T* Get() const
@@ -396,7 +531,6 @@ namespace ACBYTES
 
 	public:
 
-
 		Weak_Ptr(const Shared_Ptr<T[]>& Ref)
 		{
 			_ptr = Ref.Get();
@@ -407,6 +541,27 @@ namespace ACBYTES
 		{
 		}
 
+		[[nodiscard]] Shared_Ptr<T[]> Lock() const
+		{
+			return Shared_Ptr<T[]>(_ptr, size);
+		}
+
+		void Swap(Weak_Ptr& Ref)
+		{
+			auto ptr = _ptr;
+			auto _size = size;
+			_ptr = Ref._ptr;
+			size = Ref.size;
+			Ref._ptr = ptr;
+			Ref.size = _size;
+		}
+
+		void Reset()
+		{
+			_ptr = nullptr;
+			size = size_t();
+		}
+
 		T* Get() const
 		{
 			return _ptr;
@@ -415,7 +570,7 @@ namespace ACBYTES
 		template <size_t ArrSize>
 		void Fill(T(&Array)[ArrSize])
 		{
-			for (size_t i = 0; i < ArrSize; i++)
+			for (size_t i = 0; i < ArrSize > size ? size : ArrSize; i++)
 			{
 				Array[i] = *(_ptr + i);
 			}
@@ -426,4 +581,5 @@ namespace ACBYTES
 			return *(_ptr + Index);
 		}
 	};
+#pragma endregion Weak_Ptr
 }

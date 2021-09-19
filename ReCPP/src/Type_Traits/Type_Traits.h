@@ -61,7 +61,33 @@ namespace ACBYTES
 	{
 		static constexpr bool value = true;
 	};
+
+	template <typename T, size_t Size>
+	struct is_array<T[Size]>
+	{
+		static constexpr bool value = true;
+	};
 #pragma endregion is_array
+
+#pragma region remove_array
+	template <typename T>
+	struct remove_array
+	{
+		typedef T type;
+	};
+
+	template <typename T>
+	struct remove_array<T[]>
+	{
+		typedef T type;
+	};
+
+	template <typename T, size_t Size>
+	struct remove_array<T[Size]>
+	{
+		typedef T type;
+	};
+#pragma endregion remove_array
 
 #pragma region enable_if
 	template <bool V, typename T = void>
@@ -76,6 +102,7 @@ namespace ACBYTES
 	};
 #pragma endregion enable_if
 
+#pragma region cv
 	template <typename T>
 	struct is_const
 	{
@@ -93,4 +120,63 @@ namespace ACBYTES
 	{
 		typedef const volatile T type;
 	};
+
+	template <typename T>
+	struct remove_const
+	{
+		typedef T type;
+	};
+
+	template <typename T>
+	struct remove_const<const T>
+	{
+		typedef T type;
+	};
+
+	template <typename T>
+	struct remove_volatile
+	{
+		typedef T type;
+	};
+
+	template <typename T>
+	struct remove_volatile<volatile T>
+	{
+		typedef T type;
+	};
+
+	template <typename T>
+	struct remove_cv
+	{
+		typedef typename remove_const<typename remove_volatile<T>::type>::type type;
+	};
+#pragma endregion cv
+
+#pragma region remove_reference
+	template <typename T>
+	struct remove_reference
+	{
+		typedef T type;
+	};
+
+	template <typename T>
+	struct remove_reference<T&>
+	{
+		typedef T type;
+	};
+
+	template <typename T>
+	struct remove_reference<T&&>
+	{
+		typedef T type;
+	};
+#pragma endregion remove_reference
+
+#pragma region base_type
+	template <typename T>
+	struct base_type
+	{
+		typedef typename remove_array<typename remove_cv<typename remove_reference<T>::type>::type>::type type;
+	};
+#pragma endregion base_type
 }

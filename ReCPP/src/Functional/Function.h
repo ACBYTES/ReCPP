@@ -1,9 +1,10 @@
 #pragma once
+
 #include <utility>
 #include "Smart_Pointers.h"
 #include "Type_Traits.h"
 
-//If enabled, function classes initialized with a shared pointer (ACBYTES::Shared_Ptr) will keep a copy of the shared pointer to avoid the function containing class from getting deleted. If initialized using the pure pointer constructor, shared pointer to the class will be initialized using nullptr.
+//If enabled, function classes initialized with a shared pointer (ACBYTES::Shared_Ptr) will keep a copy of the shared pointer to avoid the function containing class from getting deleted. If initialized using the pure pointer constructor, shared pointer to the class will be initialized as an empty pointer.
 #define SHARED_PTR_FUNCTIONS 0
 
 namespace ACBYTES
@@ -32,7 +33,8 @@ namespace ACBYTES
 		class Func
 		{
 		public:
-			typedef RT(Class::* funcType)(ArgT...);
+			//typedef RT(Class::* funcType)(ArgT...);
+			using funcType = RT(Class::*)(ArgT...);
 
 		private:
 			Class* _class;
@@ -44,9 +46,6 @@ namespace ACBYTES
 
 		public:
 			Func(Class* ClassPtr, funcType FuncPtr) : _class(ClassPtr), _funcPtr(FuncPtr)
-#if SHARED_PTR_FUNCTIONS
-				, _shared_class_ptr(nullptr)
-#endif
 			{
 			}
 
@@ -56,7 +55,7 @@ namespace ACBYTES
 			}
 #endif //SHARED_PTR_FUNCTIONS
 
-			RT operator()(ArgT... Args)
+			auto operator()(ArgT... Args) -> RT
 			{
 				return (_class->*_funcPtr)(std::forward<ArgT>(Args)...);
 			}
@@ -74,7 +73,8 @@ namespace ACBYTES
 		class Func<RT, Class, CONST, ArgT...>
 		{
 		public:
-			typedef RT(Class::* funcType)(ArgT...) const;
+			//typedef RT(Class::* funcType)(ArgT...) const;
+			using funcType = RT(Class::*)(ArgT...) const;
 
 		private:
 			Class* _class;
@@ -86,9 +86,6 @@ namespace ACBYTES
 
 		public:
 			Func(Class* ClassPtr, funcType FuncPtr) : _class(ClassPtr), _funcPtr(FuncPtr)
-#if SHARED_PTR_FUNCTIONS
-				, _shared_class_ptr(nullptr)
-#endif
 			{
 			}
 
@@ -98,7 +95,7 @@ namespace ACBYTES
 			}
 #endif //SHARED_PTR_FUNCTIONS
 
-			RT operator()(ArgT... Args) const
+			auto operator()(ArgT... Args) const -> RT
 			{
 				return (_class->*_funcPtr)(std::forward<ArgT>(Args)...);
 			}
@@ -116,7 +113,8 @@ namespace ACBYTES
 		class Func<RT, Class, VOLATILE, ArgT...>
 		{
 		public:
-			typedef RT(Class::* funcType)(ArgT...) volatile;
+			//typedef RT(Class::* funcType)(ArgT...) volatile;
+			using funcType = RT(Class::*)(ArgT...) volatile;
 
 		private:
 			Class* _class;
@@ -128,9 +126,6 @@ namespace ACBYTES
 
 		public:
 			Func(Class* ClassPtr, funcType FuncPtr) : _class(ClassPtr), _funcPtr(FuncPtr)
-#if SHARED_PTR_FUNCTIONS
-				, _shared_class_ptr(nullptr)
-#endif
 			{
 			}
 
@@ -140,7 +135,7 @@ namespace ACBYTES
 			}
 #endif //SHARED_PTR_FUNCTIONS
 
-			RT operator()(ArgT... Args) volatile
+			auto operator()(ArgT... Args) volatile -> RT
 			{
 				return (_class->*_funcPtr)(std::forward<ArgT>(Args)...);
 			}
@@ -162,7 +157,8 @@ namespace ACBYTES
 		class Func<RT, Class, PQ>
 		{
 		public:
-			typedef RT(Class::* funcType)(void);
+			//typedef RT(Class::* funcType)(void);
+			using funcType = RT(Class::*)();
 
 		private:
 			Class* _class;
@@ -175,9 +171,6 @@ namespace ACBYTES
 
 		public:
 			Func(Class* ClassPtr, funcType FuncPtr) : _class(ClassPtr), _funcPtr(FuncPtr)
-#if SHARED_PTR_FUNCTIONS
-				, _shared_class_ptr(nullptr)
-#endif
 			{
 			}
 
@@ -187,7 +180,7 @@ namespace ACBYTES
 			}
 #endif // SHARED_PTR_FUNCTIONS
 
-			RT operator()(void)
+			auto operator()() -> RT
 			{
 				return (_class->*_funcPtr)();
 			}
@@ -204,7 +197,8 @@ namespace ACBYTES
 		class Func<RT, Class, CONST>
 		{
 		public:
-			typedef RT(Class::* funcType)(void) const;
+			//typedef RT(Class::* funcType)(void) const;
+			using funcType =  RT(Class::*)() const;
 
 		private:
 			Class* _class;
@@ -217,9 +211,6 @@ namespace ACBYTES
 
 		public:
 			Func(Class* ClassPtr, funcType FuncPtr) : _class(ClassPtr), _funcPtr(FuncPtr)
-#if SHARED_PTR_FUNCTIONS
-				, _shared_class_ptr(nullptr)
-#endif
 			{
 			}
 
@@ -229,7 +220,7 @@ namespace ACBYTES
 			}
 #endif // SHARED_PTR_FUNCTIONS
 
-			RT operator()(void) const
+			auto operator()() const -> RT
 			{
 				return (_class->*_funcPtr)();
 			}
@@ -246,7 +237,8 @@ namespace ACBYTES
 		class Func<RT, Class, VOLATILE>
 		{
 		public:
-			typedef RT(Class::* funcType)(void) volatile;
+			//typedef RT(Class::* funcType)(void) volatile;
+			using funcType = RT(Class::*)() volatile;
 
 		private:
 			Class* _class;
@@ -259,9 +251,6 @@ namespace ACBYTES
 
 		public:
 			Func(Class* ClassPtr, funcType FuncPtr) : _class(ClassPtr), _funcPtr(FuncPtr)
-#if SHARED_PTR_FUNCTIONS
-				, _shared_class_ptr(nullptr)
-#endif
 			{
 			}
 
@@ -271,7 +260,7 @@ namespace ACBYTES
 			}
 #endif // SHARED_PTR_FUNCTIONS
 
-			RT operator()(void) volatile
+			auto operator()() volatile -> RT
 			{
 				return (_class->*_funcPtr)();
 			}
@@ -290,7 +279,8 @@ namespace ACBYTES
 		class Func<RT, void, NONE, ArgT...>
 		{
 		public:
-			typedef RT(*funcType)(ArgT...);
+			//typedef RT(*funcType)(ArgT...);
+			using funcType = RT(*)(ArgT...);
 
 		private:
 			funcType _funcPtr;
@@ -300,7 +290,7 @@ namespace ACBYTES
 			{
 			}
 
-			RT operator()(ArgT... Args)
+			auto operator()(ArgT... Args) -> RT
 			{
 				return _funcPtr(std::forward<ArgT>(Args)...);
 			}
@@ -316,7 +306,8 @@ namespace ACBYTES
 		class Func<RT, void>
 		{
 		public:
-			typedef RT(*funcType)(void);
+			//typedef RT(*funcType)(void);
+			using funcType = RT(*)();
 
 		private:
 			funcType _funcPtr;
@@ -326,7 +317,7 @@ namespace ACBYTES
 			{
 			}
 
-			RT operator()(void)
+			auto operator()() -> RT
 			{
 				return _funcPtr();
 			}
@@ -342,7 +333,7 @@ namespace ACBYTES
 		* @param ArgT [Type of the Arguments Passed to the Function].
 		* @param FunctionPointer [Target Function]
 		*/
-		static Function::Func<void, void> WrapFunction(typename Function::Func<void, void>::funcType FunctionPointer)
+		static auto WrapFunction(typename Function::Func<void, void>::funcType FunctionPointer)
 		{
 			return Function::Func<void, void>(FunctionPointer);
 		}
@@ -354,7 +345,7 @@ namespace ACBYTES
 		* @param FunctionPointer [Target Function]
 		*/
 		template<typename RT, typename... ArgT>
-		static Function::Func<RT, void, NONE, ArgT...> WrapFunction(typename Function::Func<RT, void, NONE, ArgT...>::funcType FunctionPointer)
+		static auto WrapFunction(typename Function::Func<RT, void, NONE, ArgT...>::funcType FunctionPointer)
 		{
 			return Function::Func<RT, void, NONE, ArgT...>(FunctionPointer);
 		}
@@ -369,7 +360,7 @@ namespace ACBYTES
 		* @param FunctionPointer [Target Function]
 		*/
 		template<typename RT, typename Class, Post_Qualifiers PQ, typename... ArgT>
-		static Function::Func<RT, Class, PQ, ArgT...> WrapFunction(Class* ClassPointer, typename Function::Func<RT, Class, PQ, ArgT...>::funcType FunctionPointer)
+		static auto WrapFunction(Class* ClassPointer, typename Function::Func<RT, Class, PQ, ArgT...>::funcType FunctionPointer)
 		{
 			return Function::Func<RT, Class, PQ, ArgT...>(ClassPointer, FunctionPointer);
 		}
@@ -392,4 +383,4 @@ namespace ACBYTES
 #endif //SHARED_PTR_FUNCTIONS
 #pragma endregion Func
 	};
-}
+} //namespace ACBYTES

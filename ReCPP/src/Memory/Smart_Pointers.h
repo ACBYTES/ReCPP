@@ -1,8 +1,8 @@
 #pragma once
-#include <utility>
+#include <initializer_list>
 #include <vector>
 #include "Definitions.h"
-#include <Type_Traits.h>
+#include "Type_Traits.h"
 
 namespace ACBYTES
 {
@@ -15,7 +15,7 @@ namespace ACBYTES
 
 	public:
 
-		[[nodiscard]] Unique_Ptr() //Empty pointer.
+		[[nodiscard]] Unique_Ptr(std::nullptr_t = nullptr) //Empty pointer.
 		{
 		}
 
@@ -81,7 +81,7 @@ namespace ACBYTES
 
 	public:
 
-		[[nodiscard]] Unique_Ptr() //Empty pointer.
+		[[nodiscard]] Unique_Ptr(std::nullptr_t = nullptr) //Empty pointer.
 		{
 		}
 
@@ -197,7 +197,7 @@ namespace ACBYTES
 	template <typename T, typename... ArgT, typename ACBYTES::enable_if<!ACBYTES::is_array<T>::value, bool>::type = false>
 	[[nodiscard]] auto Make_Unique(ArgT... Arguments)
 	{
-		auto _init = new T(std::forward<ArgT>(Arguments)...);
+		auto _init = new T(Forward<ArgT>(Arguments)...);
 		return Unique_Ptr<T>(_init);
 	}
 #pragma endregion Unique_Ptr
@@ -208,7 +208,7 @@ namespace ACBYTES
 	{
 	private:
 		uint32_t _count = 1;
-		void* _ptr;
+		void* _ptr = nullptr;
 		bool _array;
 
 	public:
@@ -298,7 +298,7 @@ namespace ACBYTES
 
 	public:
 
-		[[nodiscard]] Shared_Ptr() //Empty pointer.
+		[[nodiscard]] Shared_Ptr(std::nullptr_t = nullptr) //Empty pointer.
 		{
 		}
 
@@ -362,7 +362,7 @@ namespace ACBYTES
 
 	public:
 
-		[[nodiscard]] Shared_Ptr() //Empty pointer.
+		[[nodiscard]] Shared_Ptr(std::nullptr_t = nullptr) //Empty pointer.
 		{
 		}
 
@@ -380,7 +380,7 @@ namespace ACBYTES
 
 		Shared_Ptr(Shared_Ptr&& Rvf) noexcept
 		{
-			Shared_Ptr_Container::AddNewReference((void*)Rvf._ptr);
+			Shared_Ptr_Container::AddNewReference((void*)Rvf._ptr, true);
 			_ptr = Rvf._ptr;
 			size = Rvf.Size();
 		}
@@ -474,7 +474,7 @@ namespace ACBYTES
 	template <typename T, typename... ArgT, typename ACBYTES::enable_if<!ACBYTES::is_array<T>::value, bool>::type = false>
 	[[nodiscard]] auto Make_Shared(ArgT... Arguments)
 	{
-		auto _init = new T(std::forward<ArgT>(Arguments)...);
+		auto _init = new T(Forward<ArgT>(Arguments)...);
 		return Shared_Ptr<T>(_init);
 	}
 #pragma endregion Shared_Ptr
@@ -483,12 +483,12 @@ namespace ACBYTES
 	template <typename T>
 	class Weak_Ptr
 	{
-		T* _ptr;
+		T* _ptr = nullptr;
 
 	public:
 		Weak_Ptr(const Shared_Ptr<T>& Ref)
 		{
-			_ptr = static_cast<Shared_Ptr<T>>(Ref).Get();
+			_ptr = Ref.Get();
 		}
 
 		Weak_Ptr() //Empty pointer
@@ -526,7 +526,7 @@ namespace ACBYTES
 	template <typename T>
 	class Weak_Ptr<T[]>
 	{
-		T* _ptr;
+		T* _ptr = nullptr;
 		size_t size;
 
 	public:
@@ -543,7 +543,7 @@ namespace ACBYTES
 
 		[[nodiscard]] Shared_Ptr<T[]> Lock() const
 		{
-			return Shared_Ptr<T[]>(_ptr, size);
+			return _ptr ? Shared_Ptr<T[]>(_ptr, size) : Shared_Ptr<T[]>();
 		}
 
 		void Swap(Weak_Ptr& Ref)

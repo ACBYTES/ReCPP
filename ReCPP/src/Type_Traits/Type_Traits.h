@@ -152,6 +152,32 @@ namespace ACBYTES
 	};
 #pragma endregion cv
 
+#pragma region reference_types
+	template <typename T>
+	struct is_lvalue_reference
+	{
+		static constexpr bool value = false;
+	};
+
+	template <typename T>
+	struct is_lvalue_reference<T&>
+	{
+		static constexpr bool value = true;
+	};
+
+	template <typename T>
+	struct is_rvalue_reference
+	{
+		static constexpr bool value = false;
+	};
+
+	template <typename T>
+	struct is_rvalue_reference<T&&>
+	{
+		static constexpr bool value = true;
+	};
+#pragma endregion reference_types
+
 #pragma region remove_reference
 	template <typename T>
 	struct remove_reference
@@ -179,4 +205,18 @@ namespace ACBYTES
 		typedef typename remove_array<typename remove_cv<typename remove_reference<T>::type>::type>::type type;
 	};
 #pragma endregion base_type
+
+#pragma region Forward
+	template <typename T>
+	[[nodiscard]] constexpr T&& Forward(typename ACBYTES::remove_reference<T>::type& R) noexcept
+	{
+		return (T&&)(R);
+	}
+
+	template <typename T>
+	[[nodiscard]] constexpr T&& Forward(typename ACBYTES::remove_reference<T>::type&& RVR) noexcept
+	{
+		return (T&&)(RVR);
+	}
+#pragma endregion Forward
 }

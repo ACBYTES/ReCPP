@@ -1,4 +1,5 @@
 #pragma once
+
 #include <initializer_list>
 #include <vector>
 #include "Definitions.h"
@@ -11,7 +12,6 @@ namespace ACBYTES
 	class Unique_Ptr
 	{
 		T* _ptr = nullptr;
-		bool _moved = false;
 
 	public:
 
@@ -23,9 +23,15 @@ namespace ACBYTES
 		{
 		}
 
+		[[nodiscard]] Unique_Ptr(Unique_Ptr&& Rvr) noexcept
+		{
+			_ptr = Rvr._ptr;
+			Rvr._ptr = nullptr;
+		}
+
 		~Unique_Ptr()
 		{
-			if (_ptr && !_moved)
+			if (_ptr)
 				delete _ptr;
 		}
 
@@ -65,11 +71,7 @@ namespace ACBYTES
 
 		Unique_Ptr(const Unique_Ptr&) = delete;
 		Unique_Ptr& operator =(const Unique_Ptr&) = delete;
-		Unique_Ptr(Unique_Ptr&& R) noexcept
-		{
-			R._moved = true;
-			_ptr = R._ptr;
-		}
+		Unique_Ptr(const Unique_Ptr&&) = delete;
 	};
 
 	template <typename T>
@@ -77,7 +79,6 @@ namespace ACBYTES
 	{
 		T* _ptr = nullptr;
 		size_t size;
-		bool _moved = false;
 
 	public:
 
@@ -89,9 +90,17 @@ namespace ACBYTES
 		{
 		}
 
+		[[nodiscard]] Unique_Ptr(Unique_Ptr&& Rvr) noexcept
+		{
+			_ptr = Rvr._ptr;
+			size = Rvr.size;
+			Rvr._ptr = nullptr;
+			Rvr.size = 0;
+		}
+
 		~Unique_Ptr()
 		{
-			if (_ptr && !_moved)
+			if (_ptr)
 				delete[] _ptr;
 		}
 
@@ -157,12 +166,7 @@ namespace ACBYTES
 
 		Unique_Ptr(const Unique_Ptr&) = delete;
 		Unique_Ptr& operator =(const Unique_Ptr&) = delete;
-		Unique_Ptr(Unique_Ptr&& R) noexcept
-		{
-			R._moved = true;
-			_ptr = R._ptr;
-			size = R.size;
-		}
+		Unique_Ptr(const Unique_Ptr&&) = delete;
 	};
 
 	/*
@@ -204,7 +208,7 @@ namespace ACBYTES
 
 #pragma region Shared_Ptr
 
-	struct Shared_Reference_Data final
+	struct Shared_Ref_Counter final
 	{
 	private:
 		uint32_t _count = 1;
@@ -213,11 +217,11 @@ namespace ACBYTES
 
 	public:
 
-		Shared_Reference_Data(void* Ptr, bool IsArray) : _ptr(Ptr), _array(IsArray)
+		Shared_Ref_Counter(void* Ptr, bool IsArray) : _ptr(Ptr), _array(IsArray)
 		{
 		}
 
-		~Shared_Reference_Data()
+		~Shared_Ref_Counter()
 		{
 			if (_ptr && _count < 1)
 			{
@@ -238,19 +242,19 @@ namespace ACBYTES
 			return Ptr == _ptr;
 		}
 
-		Shared_Reference_Data& operator ++()
+		Shared_Ref_Counter& operator ++()
 		{
 			_count++;
 			return *this;
 		}
 
-		Shared_Reference_Data& operator --()
+		Shared_Ref_Counter& operator --()
 		{
 			_count--;
 			return *this;
 		}
 
-		Shared_Reference_Data() = delete;
+		Shared_Ref_Counter() = delete;
 	};
 
 	struct Shared_Ptr_Container final
@@ -260,10 +264,17 @@ namespace ACBYTES
 		template <typename> friend class Shared_Ptr;
 
 	private:
-		static std::vector<Shared_Reference_Data> references;
+		static std::vector<Shared_Ref_Counter> references;
+		static const size_t reserve_size = 4;
+
+		static void CheckReserve()
+		{
+			references.reserve(references.capacity() - references.size() <= 2 ? reserve_size : 0);
+		}
 
 		static void AddNewReference(void* Ptr, bool IsArray = false)
 		{
+			CheckReserve();
 			for (auto i = references.begin(); i != references.end(); i++)
 			{
 				if (*i == Ptr)
@@ -272,7 +283,7 @@ namespace ACBYTES
 					return;
 				}
 			}
-			references.push_back(Shared_Reference_Data(Ptr, IsArray));
+			references.push_back(Shared_Ref_Counter(Ptr, IsArray));
 		}
 
 		static void RemoveReference(void* Ptr)
@@ -289,7 +300,7 @@ namespace ACBYTES
 		}
 	};
 
-	std::vector<Shared_Reference_Data> Shared_Ptr_Container::references = std::vector<Shared_Reference_Data>();
+	std::vector<Shared_Ref_Counter> Shared_Ptr_Container::references = std::vector<Shared_Ref_Counter>();
 
 	template <typename T>
 	class Shared_Ptr
@@ -313,10 +324,10 @@ namespace ACBYTES
 			_ptr = Ref._ptr;
 		}
 
-		Shared_Ptr(Shared_Ptr&& Rvf) noexcept
+		[[nodiscard]] Shared_Ptr(Shared_Ptr&& Rvr) noexcept
 		{
-			Shared_Ptr_Container::AddNewReference((void*)Rvf._ptr);
-			_ptr = Rvf._ptr;
+			_ptr = Rvr._ptr;
+			Rvr._ptr = nullptr;
 		}
 
 		~Shared_Ptr()
@@ -352,6 +363,8 @@ namespace ACBYTES
 		{
 			return _ptr;
 		}
+
+		Shared_Ptr(const Shared_Ptr&&) = delete;
 	};
 
 	template <typename T>
@@ -378,11 +391,12 @@ namespace ACBYTES
 			size = Ref.Size();
 		}
 
-		Shared_Ptr(Shared_Ptr&& Rvf) noexcept
+		[[nodiscard]] Shared_Ptr(Shared_Ptr&& Rvr) noexcept
 		{
-			Shared_Ptr_Container::AddNewReference((void*)Rvf._ptr, true);
-			_ptr = Rvf._ptr;
-			size = Rvf.Size();
+			_ptr = Rvr._ptr;
+			size = Rvr.Size();
+			Rvr._ptr = nullptr;
+			Rvr.size = 0;
 		}
 
 		~Shared_Ptr()
@@ -440,6 +454,8 @@ namespace ACBYTES
 		{
 			return *(_ptr + Index);
 		}
+
+		Shared_Ptr(const Shared_Ptr&&) = delete;
 	};
 
 	/*
@@ -495,6 +511,12 @@ namespace ACBYTES
 		{
 		}
 
+		[[nodiscard]] Weak_Ptr(Weak_Ptr&& Rvr) noexcept
+		{
+			_ptr = Rvr._ptr;
+			Rvr._ptr = nullptr;
+		}
+
 		[[nodiscard]] Shared_Ptr<T> Lock() const
 		{
 			return _ptr ? Shared_Ptr<T>(_ptr) : Shared_Ptr<T>();
@@ -537,8 +559,16 @@ namespace ACBYTES
 			size = Ref.Size();
 		}
 
-		Weak_Ptr()
+		Weak_Ptr() //Empty pointer
 		{
+		}
+
+		[[nodiscard]] Weak_Ptr(Weak_Ptr&& Rvr) noexcept
+		{
+			_ptr = Rvr._ptr;
+			size = Rvr.size;
+			Rvr._ptr = nullptr;
+			Rvr.size = 0;
 		}
 
 		[[nodiscard]] Shared_Ptr<T[]> Lock() const

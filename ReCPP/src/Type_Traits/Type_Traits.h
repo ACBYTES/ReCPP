@@ -213,10 +213,18 @@ namespace ACBYTES
 		return (T&&)(R);
 	}
 
-	template <typename T>
+	template <typename T, typename enable_if<!ACBYTES::is_lvalue_reference<T>::value, bool>::type = false>
 	[[nodiscard]] constexpr T&& Forward(typename ACBYTES::remove_reference<T>::type&& RVR) noexcept
 	{
 		return (T&&)(RVR);
 	}
 #pragma endregion Forward
+
+#pragma region Move
+	template <typename T>
+	[[nodiscard]] constexpr typename remove_reference<T>::type&& Move(T&& V)
+	{
+		return (typename remove_reference<T>::type&&)V;
+	}
+#pragma endregion Move
 }

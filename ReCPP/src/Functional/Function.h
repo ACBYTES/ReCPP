@@ -1,9 +1,10 @@
 #pragma once
+
 #include "Smart_Pointers.h"
 #include "Type_Traits.h"
 
 //If enabled, function classes initialized with a shared pointer (ACBYTES::Shared_Ptr) will keep a copy of the shared pointer to avoid the function containing class from getting deleted. If initialized using the pure pointer constructor, shared pointer to the class will be initialized as an empty pointer.
-#define SHARED_PTR_FUNCTIONS 0
+#define SHARED_PTR_FUNCTIONS 1
 
 namespace ACBYTES
 {
@@ -52,12 +53,12 @@ namespace ACBYTES
 			}
 
 #if SHARED_PTR_FUNCTIONS
-			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(std::move(ClassPtr))
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(ACBYTES::Move(ClassPtr))
 			{
 			}
 #endif //SHARED_PTR_FUNCTIONS
 
-			auto operator()(ArgT... Args) -> RT
+			RT operator()(ArgT... Args)
 			{
 				return (_class->*_funcPtr)(Forward<ArgT>(Args)...);
 			}
@@ -91,12 +92,12 @@ namespace ACBYTES
 			}
 
 #if SHARED_PTR_FUNCTIONS
-			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(std::move(ClassPtr))
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(ACBYTES::Move(ClassPtr))
 			{
 			}
 #endif //SHARED_PTR_FUNCTIONS
 
-			auto operator()(ArgT... Args) const -> RT
+			RT operator()(ArgT... Args) const
 			{
 				return (_class->*_funcPtr)(Forward<ArgT>(Args)...);
 			}
@@ -130,12 +131,12 @@ namespace ACBYTES
 			}
 
 #if SHARED_PTR_FUNCTIONS
-			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(std::move(ClassPtr))
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(ACBYTES::Move(ClassPtr))
 			{
 			}
 #endif //SHARED_PTR_FUNCTIONS
 
-			auto operator()(ArgT... Args) volatile -> RT
+			RT operator()(ArgT... Args) volatile
 			{
 				return (_class->*_funcPtr)(Forward<ArgT>(Args)...);
 			}
@@ -169,12 +170,12 @@ namespace ACBYTES
 			}
 
 #if SHARED_PTR_FUNCTIONS
-			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(std::move(ClassPtr))
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(ACBYTES::Move(ClassPtr))
 			{
 			}
 #endif //SHARED_PTR_FUNCTIONS
 
-			auto operator()(ArgT... Args) volatile -> RT
+			RT operator()(ArgT... Args) volatile
 			{
 				return (_class->*_funcPtr)(Forward<ArgT>(Args)...);
 			}
@@ -213,12 +214,12 @@ namespace ACBYTES
 			}
 
 #if SHARED_PTR_FUNCTIONS
-			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(std::move(ClassPtr))
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(ACBYTES::Move(ClassPtr))
 			{
 			}
 #endif // SHARED_PTR_FUNCTIONS
 
-			auto operator()() -> RT
+			RT operator()()
 			{
 				return (_class->*_funcPtr)();
 			}
@@ -252,12 +253,12 @@ namespace ACBYTES
 			}
 
 #if SHARED_PTR_FUNCTIONS
-			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(std::move(ClassPtr))
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(ACBYTES::Move(ClassPtr))
 			{
 			}
 #endif // SHARED_PTR_FUNCTIONS
 
-			auto operator()() const -> RT
+			RT operator()() const
 			{
 				return (_class->*_funcPtr)();
 			}
@@ -291,12 +292,12 @@ namespace ACBYTES
 			}
 
 #if SHARED_PTR_FUNCTIONS
-			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(std::move(ClassPtr))
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(ACBYTES::Move(ClassPtr))
 			{
 			}
 #endif // SHARED_PTR_FUNCTIONS
 
-			auto operator()() volatile -> RT
+			RT operator()() volatile
 			{
 				return (_class->*_funcPtr)();
 			}
@@ -330,12 +331,12 @@ namespace ACBYTES
 			}
 
 #if SHARED_PTR_FUNCTIONS
-			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(std::move(ClassPtr))
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(ACBYTES::Move(ClassPtr))
 			{
 			}
 #endif // SHARED_PTR_FUNCTIONS
 
-			auto operator()() volatile -> RT
+			RT operator()() volatile
 			{
 				return (_class->*_funcPtr)();
 			}
@@ -364,7 +365,7 @@ namespace ACBYTES
 			{
 			}
 
-			auto operator()(ArgT... Args) -> RT
+			RT operator()(ArgT... Args)
 			{
 				return _funcPtr(Forward<ArgT>(Args)...);
 			}
@@ -390,7 +391,7 @@ namespace ACBYTES
 			{
 			}
 
-			auto operator()() -> RT
+			RT operator()()
 			{
 				return _funcPtr();
 			}
@@ -465,7 +466,7 @@ namespace ACBYTES
 		template<typename RT, typename Class, typename... ArgT>
 		static auto WrapFunction(Shared_Ptr<Class> ClassPointer, typename Function::Func<RT, Class, Post_Qualifiers::NONE, ArgT...>::funcType FunctionPointer)
 		{
-			return Function::Func<RT, Class, Post_Qualifiers::NONE, ArgT...>(std::move(ClassPointer), FunctionPointer);
+			return Function::Func<RT, Class, Post_Qualifiers::NONE, ArgT...>(ACBYTES::Move(ClassPointer), FunctionPointer);
 		}
 
 		/*
@@ -480,7 +481,7 @@ namespace ACBYTES
 		template<typename RT, typename Class, Post_Qualifiers PQ, typename... ArgT>
 		static auto WrapFunction(Shared_Ptr<Class> ClassPointer, typename Function::Func<RT, Class, PQ, ArgT...>::funcType FunctionPointer)
 		{
-			return Function::Func<RT, Class, PQ, ArgT...>(std::move(ClassPointer), FunctionPointer);
+			return Function::Func<RT, Class, PQ, ArgT...>(ACBYTES::Move(ClassPointer), FunctionPointer);
 		}
 #endif //SHARED_PTR_FUNCTIONS
 #pragma endregion Func

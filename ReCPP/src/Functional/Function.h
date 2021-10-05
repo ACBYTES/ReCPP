@@ -4,7 +4,7 @@
 #include "Type_Traits.h"
 
 //If enabled, function classes initialized with a shared pointer (ACBYTES::Shared_Ptr) will keep a copy of the shared pointer to avoid the function containing class from getting deleted. If initialized using the pure pointer constructor, shared pointer to the class will be initialized as an empty pointer.
-#define SHARED_PTR_FUNCTIONS 1
+#define SHARED_PTR_FUNCTIONS 0
 
 namespace ACBYTES
 {
@@ -92,7 +92,7 @@ namespace ACBYTES
 			}
 
 #if SHARED_PTR_FUNCTIONS
-			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(ACBYTES::Move(ClassPtr))
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(Move(ClassPtr))
 			{
 			}
 #endif //SHARED_PTR_FUNCTIONS
@@ -131,7 +131,7 @@ namespace ACBYTES
 			}
 
 #if SHARED_PTR_FUNCTIONS
-			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(ACBYTES::Move(ClassPtr))
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(Move(ClassPtr))
 			{
 			}
 #endif //SHARED_PTR_FUNCTIONS
@@ -170,7 +170,7 @@ namespace ACBYTES
 			}
 
 #if SHARED_PTR_FUNCTIONS
-			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(ACBYTES::Move(ClassPtr))
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(Move(ClassPtr))
 			{
 			}
 #endif //SHARED_PTR_FUNCTIONS
@@ -214,7 +214,7 @@ namespace ACBYTES
 			}
 
 #if SHARED_PTR_FUNCTIONS
-			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(ACBYTES::Move(ClassPtr))
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(Move(ClassPtr))
 			{
 			}
 #endif // SHARED_PTR_FUNCTIONS
@@ -253,7 +253,7 @@ namespace ACBYTES
 			}
 
 #if SHARED_PTR_FUNCTIONS
-			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(ACBYTES::Move(ClassPtr))
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(Move(ClassPtr))
 			{
 			}
 #endif // SHARED_PTR_FUNCTIONS
@@ -292,7 +292,7 @@ namespace ACBYTES
 			}
 
 #if SHARED_PTR_FUNCTIONS
-			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(ACBYTES::Move(ClassPtr))
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(Move(ClassPtr))
 			{
 			}
 #endif // SHARED_PTR_FUNCTIONS
@@ -331,7 +331,7 @@ namespace ACBYTES
 			}
 
 #if SHARED_PTR_FUNCTIONS
-			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(ACBYTES::Move(ClassPtr))
+			Func(Shared_Ptr<Class>&& ClassPtr, funcType FuncPtr) : _class(ClassPtr.Get()), _funcPtr(FuncPtr), _shared_class_ptr(Move(ClassPtr))
 			{
 			}
 #endif // SHARED_PTR_FUNCTIONS
@@ -466,7 +466,7 @@ namespace ACBYTES
 		template<typename RT, typename Class, typename... ArgT>
 		static auto WrapFunction(Shared_Ptr<Class> ClassPointer, typename Function::Func<RT, Class, Post_Qualifiers::NONE, ArgT...>::funcType FunctionPointer)
 		{
-			return Function::Func<RT, Class, Post_Qualifiers::NONE, ArgT...>(ACBYTES::Move(ClassPointer), FunctionPointer);
+			return Function::Func<RT, Class, Post_Qualifiers::NONE, ArgT...>(Move(ClassPointer), FunctionPointer);
 		}
 
 		/*
@@ -481,7 +481,7 @@ namespace ACBYTES
 		template<typename RT, typename Class, Post_Qualifiers PQ, typename... ArgT>
 		static auto WrapFunction(Shared_Ptr<Class> ClassPointer, typename Function::Func<RT, Class, PQ, ArgT...>::funcType FunctionPointer)
 		{
-			return Function::Func<RT, Class, PQ, ArgT...>(ACBYTES::Move(ClassPointer), FunctionPointer);
+			return Function::Func<RT, Class, PQ, ArgT...>(Move(ClassPointer), FunctionPointer);
 		}
 #endif //SHARED_PTR_FUNCTIONS
 #pragma endregion Func

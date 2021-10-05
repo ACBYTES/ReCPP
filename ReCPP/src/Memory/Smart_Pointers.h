@@ -71,7 +71,6 @@ namespace ACBYTES
 
 		Unique_Ptr(const Unique_Ptr&) = delete;
 		Unique_Ptr& operator =(const Unique_Ptr&) = delete;
-		Unique_Ptr(const Unique_Ptr&&) = delete;
 	};
 
 	template <typename T>
@@ -166,27 +165,26 @@ namespace ACBYTES
 
 		Unique_Ptr(const Unique_Ptr&) = delete;
 		Unique_Ptr& operator =(const Unique_Ptr&) = delete;
-		Unique_Ptr(const Unique_Ptr&&) = delete;
 	};
 
 	/*
 	* Makes unique pointer pointing to an array with the size passed.
 	*/
-	template <typename T, typename ACBYTES::enable_if<ACBYTES::is_array<T>::value, bool>::type = false>
-	[[nodiscard]] auto Make_Unique(const size_t Size)
+	template <typename T, enable_if_t<is_array<T>::value, bool> = false>
+	[[nodiscard]] auto Make_Unique(const size_t Size) -> Unique_Ptr<T>
 	{
-		using type = typename ACBYTES::remove_array<T>::type;
-		type* _init = new type[Size]{}; //Initialization for possible const types.
+		using type = remove_array_t<T>;
+		type* _init = new type[Size]{}; //Default constructed for possible const types.
 		return Unique_Ptr<T>(_init, Size);
 	}
 
 	/*
 	* Makes unique pointer pointing to an array initialized with the initializer list passed.
 	*/
-	template <typename T, typename ACBYTES::enable_if<ACBYTES::is_array<T>::value && !ACBYTES::is_const<T>::value, bool>::type = false> //No const types allowed because the array is going to be filled with the initializer list.
-	[[nodiscard]] auto Make_Unique(std::initializer_list<typename ACBYTES::remove_array<T>::type> List) -> Unique_Ptr<T>
+	template <typename T, enable_if_t<is_array<T>::value && !is_const<T>::value, bool> = false> //No const types allowed because the array is going to be filled with the initializer list.
+	[[nodiscard]] auto Make_Unique(std::initializer_list<remove_array_t<T>> List) -> Unique_Ptr<T>
 	{
-		using type = typename ACBYTES::remove_array<T>::type;
+		using type = remove_array_t<T>;
 		type* _init = new type[List.size()];
 		for (size_t i = 0; i < List.size(); i++)
 		{
@@ -198,8 +196,8 @@ namespace ACBYTES
 	/*
 	* Makes unique pointer pointing to an object of type T.
 	*/
-	template <typename T, typename... ArgT, typename ACBYTES::enable_if<!ACBYTES::is_array<T>::value, bool>::type = false>
-	[[nodiscard]] auto Make_Unique(ArgT... Arguments)
+	template <typename T, typename... ArgT, enable_if_t<!is_array<T>::value, bool> = false>
+	[[nodiscard]] auto Make_Unique(ArgT... Arguments) -> Unique_Ptr<T>
 	{
 		auto _init = new T(Forward<ArgT>(Arguments)...);
 		return Unique_Ptr<T>(_init);
@@ -207,7 +205,6 @@ namespace ACBYTES
 #pragma endregion Unique_Ptr
 
 #pragma region Shared_Ptr
-
 	struct Shared_Ref_Counter final
 	{
 	private:
@@ -226,7 +223,7 @@ namespace ACBYTES
 			if (_ptr && _count < 1)
 			{
 				if (_array)
-					delete[] _ptr;
+					delete[] _ptr; //@TODO: FIX RUNTIME EXCEPTION. [UNKNOWN BASE TYPE - VOID*]
 				else
 					delete _ptr;
 			}
@@ -237,9 +234,15 @@ namespace ACBYTES
 			return _count < 1;
 		}
 
-		bool operator ==(void* Ptr)
+		//bool operator ==(void* Ptr)
+		//{
+		//	return Ptr == _ptr;
+		//}
+
+		template <typename T>
+		bool operator ==(T Ptr) //Types might contain different qualifiers. [Could be simplified to the version above where casts to void* are done in Shared_Ptr_Container functions themselves.]. This is surely (At least until no users use this class [If used, handling can happen using enable_if or explicit array type using remove_array*]) gets called from Shared_Ptr_Container so checks for correct pointer types isn't necessary.
 		{
-			return Ptr == _ptr;
+			return (void*)Ptr == _ptr;
 		}
 
 		Shared_Ref_Counter& operator ++()
@@ -272,29 +275,37 @@ namespace ACBYTES
 			references.reserve(references.capacity() - references.size() <= 2 ? reserve_size : 0);
 		}
 
-		static void AddNewReference(void* Ptr, bool IsArray = false)
+		template <typename T>
+		static void AddNewReference(T* Ptr, bool IsArray = false)
 		{
-			CheckReserve();
-			for (auto i = references.begin(); i != references.end(); i++)
+			if (Ptr)
 			{
-				if (*i == Ptr)
+				CheckReserve();
+				for (auto i = references.begin(); i != references.end(); i++)
 				{
-					++(*i);
-					return;
+					if (*i == Ptr)
+					{
+						++(*i);
+						return;
+					}
 				}
+				references.push_back(Shared_Ref_Counter((void*)Ptr, IsArray));
 			}
-			references.push_back(Shared_Ref_Counter(Ptr, IsArray));
 		}
 
-		static void RemoveReference(void* Ptr)
+		template <typename T>
+		static void RemoveReference(T* Ptr)
 		{
-			for (auto i = references.begin(); i != references.end(); i++)
+			if (Ptr)
 			{
-				if (*i == Ptr)
+				for (auto i = references.begin(); i != references.end(); i++)
 				{
-					if ((--(*i)).Dead())
-						references.erase(i);
-					return;
+					if (*i == Ptr)
+					{
+						if ((--(*i)).Dead())
+							references.erase(i);
+						return;
+					}
 				}
 			}
 		}
@@ -315,13 +326,13 @@ namespace ACBYTES
 
 		[[nodiscard]] Shared_Ptr(T* Ptr) : _ptr(Ptr)
 		{
-			Shared_Ptr_Container::AddNewReference((void*)Ptr);
+			Shared_Ptr_Container::AddNewReference(Ptr);
 		}
 
 		Shared_Ptr(const Shared_Ptr& Ref)
 		{
-			Shared_Ptr_Container::AddNewReference((void*)Ref._ptr);
 			_ptr = Ref._ptr;
+			Shared_Ptr_Container::AddNewReference(_ptr);
 		}
 
 		[[nodiscard]] Shared_Ptr(Shared_Ptr&& Rvr) noexcept
@@ -330,10 +341,16 @@ namespace ACBYTES
 			Rvr._ptr = nullptr;
 		}
 
+		template <typename T1, enable_if_t<is_base_of<T, T1>::value, bool> = false>
+		[[nodiscard]] Shared_Ptr(const Shared_Ptr<T1>& Ref)
+		{
+			_ptr = Ref.Get();
+			Shared_Ptr_Container::AddNewReference(_ptr);
+		}
+
 		~Shared_Ptr()
 		{
-			if (_ptr)
-				Shared_Ptr_Container::RemoveReference((void*)_ptr);
+			Shared_Ptr_Container::RemoveReference(_ptr);
 		}
 
 		void Swap(Shared_Ptr& Ref)
@@ -345,11 +362,8 @@ namespace ACBYTES
 
 		void Reset(T* Ptr = nullptr)
 		{
-			if (_ptr)
-				Shared_Ptr_Container::RemoveReference((void*)_ptr);
-
-			if (Ptr)
-				Shared_Ptr_Container::AddNewReference((void*)Ptr);
+			Shared_Ptr_Container::RemoveReference(_ptr);
+			Shared_Ptr_Container::AddNewReference(Ptr);
 
 			_ptr = Ptr;
 		}
@@ -363,8 +377,6 @@ namespace ACBYTES
 		{
 			return _ptr;
 		}
-
-		Shared_Ptr(const Shared_Ptr&&) = delete;
 	};
 
 	template <typename T>
@@ -381,14 +393,14 @@ namespace ACBYTES
 
 		[[nodiscard]] Shared_Ptr(T* Ptr, size_t Size) : _ptr(Ptr), size(Size)
 		{
-			Shared_Ptr_Container::AddNewReference((void*)Ptr, true);
+			Shared_Ptr_Container::AddNewReference(Ptr, true);
 		}
 
 		Shared_Ptr(const Shared_Ptr& Ref)
 		{
-			Shared_Ptr_Container::AddNewReference((void*)Ref._ptr, true);
 			_ptr = Ref._ptr;
 			size = Ref.Size();
+			Shared_Ptr_Container::AddNewReference(Ref._ptr, true);
 		}
 
 		[[nodiscard]] Shared_Ptr(Shared_Ptr&& Rvr) noexcept
@@ -399,10 +411,17 @@ namespace ACBYTES
 			Rvr.size = 0;
 		}
 
+		template <typename T1, enable_if_t<is_base_of<remove_array_t<T>, remove_array_t<T1>>::value, bool> = false>
+		[[nodiscard]] Shared_Ptr(const Shared_Ptr<T1>& Ref)
+		{
+			_ptr = Ref.Get();
+			size = Ref.Size();
+			Shared_Ptr_Container::AddNewReference(_ptr, true);
+		}
+
 		~Shared_Ptr()
 		{
-			if (_ptr)
-				Shared_Ptr_Container::RemoveReference((void*)_ptr);
+			Shared_Ptr_Container::RemoveReference(_ptr);
 		}
 
 		void Swap(Shared_Ptr& Ref)
@@ -417,16 +436,18 @@ namespace ACBYTES
 
 		void Reset(T* Ptr, size_t Size)
 		{
-			if (_ptr)
-				delete[] _ptr;
+			Shared_Ptr_Container::RemoveReference(_ptr);
+			Shared_Ptr_Container::AddNewReference(Ptr);
+
 			_ptr = Ptr;
 			size = Size;
 		}
 
 		void Reset(T* Ptr = nullptr) //Unable to resolve size
 		{
-			if (_ptr)
-				delete[] _ptr;
+			Shared_Ptr_Container::RemoveReference(_ptr);
+			Shared_Ptr_Container::AddNewReference(Ptr);
+
 			_ptr = Ptr;
 			size = size_t();
 		}
@@ -454,28 +475,26 @@ namespace ACBYTES
 		{
 			return *(_ptr + Index);
 		}
-
-		Shared_Ptr(const Shared_Ptr&&) = delete;
 	};
 
 	/*
 	* Makes shared pointer pointing to an array with the size passed.
 	*/
-	template <typename T, typename ACBYTES::enable_if<ACBYTES::is_array<T>::value, bool>::type = false>
+	template <typename T, enable_if_t<is_array<T>::value, bool> = false>
 	[[nodiscard]] auto Make_Shared(const size_t Size) -> Shared_Ptr<T>
 	{
-		using type = typename ACBYTES::remove_array<T>::type;
-		type* _init = new type[Size]{}; //Initialization for possible const types.
+		using type = remove_array_t<T>;
+		type* _init = new type[Size]{}; //Default constructed for possible const types.
 		return Shared_Ptr<T>(_init, Size);
 	}
 
 	/*
 	* Makes shared pointer pointing to an array initialized with the initializer list passed.
 	*/
-	template <typename T, typename ACBYTES::enable_if<ACBYTES::is_array<T>::value && !ACBYTES::is_const<T>::value, bool>::type = false> //No const types allowed because the array is going to be filled with the initializer list.
-	[[nodiscard]] auto Make_Shared(std::initializer_list<typename ACBYTES::remove_array<T>::type> List) -> Shared_Ptr<T>
+	template <typename T, enable_if_t<is_array<T>::value && !is_const<T>::value, bool> = false> //No const types allowed because the array is going to be filled with the initializer list.
+	[[nodiscard]] auto Make_Shared(std::initializer_list<remove_array_t<T>> List) -> Shared_Ptr<T>
 	{
-		using type = typename ACBYTES::remove_array<T>::type;
+		using type = remove_array_t<T>;
 		type* _init = new type[List.size()];
 		for (size_t i = 0; i < List.size(); i++)
 		{
@@ -487,8 +506,8 @@ namespace ACBYTES
 	/*
 	* Makes shared pointer pointing to an object of type T.
 	*/
-	template <typename T, typename... ArgT, typename ACBYTES::enable_if<!ACBYTES::is_array<T>::value, bool>::type = false>
-	[[nodiscard]] auto Make_Shared(ArgT... Arguments)
+	template <typename T, typename... ArgT, enable_if_t<!is_array<T>::value, bool> = false>
+	[[nodiscard]] auto Make_Shared(ArgT... Arguments) -> Shared_Ptr<T>
 	{
 		auto _init = new T(Forward<ArgT>(Arguments)...);
 		return Shared_Ptr<T>(_init);

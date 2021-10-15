@@ -205,59 +205,96 @@ namespace ACBYTES
 #pragma endregion Unique_Ptr
 
 #pragma region Shared_Ptr
-	struct Shared_Ref_Counter final
+	struct IShared_Ref_Counter
+	{
+		virtual ~IShared_Ref_Counter()
+		{
+		}
+
+		virtual bool Dead() = 0;
+		virtual bool operator ==(void* Ptr) = 0;
+		virtual IShared_Ref_Counter& operator ++() = 0;
+		virtual IShared_Ref_Counter& operator --() = 0;
+	};
+
+	template <typename T>
+	struct Shared_Ref_Counter final : public IShared_Ref_Counter
 	{
 	private:
 		uint32_t _count = 1;
-		void* _ptr = nullptr;
-		bool _array;
+		T* _ptr = nullptr;
 
 	public:
-
-		Shared_Ref_Counter(void* Ptr, bool IsArray) : _ptr(Ptr), _array(IsArray)
+		Shared_Ref_Counter(T* Ptr) : _ptr(Ptr)
 		{
 		}
 
 		~Shared_Ref_Counter()
 		{
-			if (_ptr && _count < 1)
-			{
-				if (_array)
-					delete[] _ptr; //@TODO: FIX RUNTIME EXCEPTION. [UNKNOWN BASE TYPE - VOID*]
-				else
-					delete _ptr;
-			}
+			delete _ptr;
 		}
 
-		bool Dead()
+		bool Dead() override
 		{
 			return _count < 1;
 		}
 
-		//bool operator ==(void* Ptr)
-		//{
-		//	return Ptr == _ptr;
-		//}
-
-		template <typename T>
-		bool operator ==(T Ptr) //Types might contain different qualifiers. [Could be simplified to the version above where casts to void* are done in Shared_Ptr_Container functions themselves.]. This is surely (At least until no users use this class [If used, handling can happen using enable_if or explicit array type using remove_array*]) gets called from Shared_Ptr_Container so checks for correct pointer types isn't necessary.
+		bool operator ==(void* Ptr) override
 		{
-			return (void*)Ptr == _ptr;
+			return Ptr == _ptr;
 		}
 
-		Shared_Ref_Counter& operator ++()
+		IShared_Ref_Counter& operator ++() override
 		{
-			_count++;
+			++_count;
 			return *this;
 		}
 
-		Shared_Ref_Counter& operator --()
+		IShared_Ref_Counter& operator --() override
 		{
-			_count--;
+			--_count;
+			return *this;
+		}
+	};
+
+	template <typename T>
+	struct Shared_Ref_Counter<T[]> final : public IShared_Ref_Counter
+	{
+	private:
+		uint32_t _count = 1;
+		T* _ptr = nullptr;
+
+	public:
+		Shared_Ref_Counter(T* Ptr) : _ptr(Ptr)
+		{
+		}
+
+		~Shared_Ref_Counter()
+		{
+			delete[] _ptr;
+		}
+
+		bool Dead() override
+		{
+			return _count < 1;
+		}
+
+		bool operator ==(void* Ptr) override
+		{
+			return Ptr == _ptr;
+		}
+
+		IShared_Ref_Counter& operator ++() override
+		{
+			++_count;
 			return *this;
 		}
 
-		Shared_Ref_Counter() = delete;
+		IShared_Ref_Counter& operator --() override
+		{
+			--_count;
+			return *this;
+		}
 	};
 
 	struct Shared_Ptr_Container final
@@ -267,7 +304,7 @@ namespace ACBYTES
 		template <typename> friend class Shared_Ptr;
 
 	private:
-		static std::vector<Shared_Ref_Counter> references;
+		static std::vector<IShared_Ref_Counter*> references;
 		static const size_t reserve_size = 4;
 
 		static void CheckReserve()
@@ -283,13 +320,17 @@ namespace ACBYTES
 				CheckReserve();
 				for (auto i = references.begin(); i != references.end(); i++)
 				{
-					if (*i == Ptr)
+					auto& ref = **i;
+					if (ref == Ptr)
 					{
-						++(*i);
+						++ref;
 						return;
 					}
 				}
-				references.push_back(Shared_Ref_Counter((void*)Ptr, IsArray));
+				if (IsArray)
+					references.push_back(new Shared_Ref_Counter<T[]>(Ptr));
+				else
+					references.push_back(new Shared_Ref_Counter<T>(Ptr));
 			}
 		}
 
@@ -300,10 +341,14 @@ namespace ACBYTES
 			{
 				for (auto i = references.begin(); i != references.end(); i++)
 				{
-					if (*i == Ptr)
+					auto& ref = **i;
+					if (ref == Ptr)
 					{
-						if ((--(*i)).Dead())
+						if ((--(ref)).Dead())
+						{
+							delete (*i);
 							references.erase(i);
+						}
 						return;
 					}
 				}
@@ -311,7 +356,7 @@ namespace ACBYTES
 		}
 	};
 
-	std::vector<Shared_Ref_Counter> Shared_Ptr_Container::references = std::vector<Shared_Ref_Counter>();
+	std::vector<IShared_Ref_Counter*> Shared_Ptr_Container::references = std::vector<IShared_Ref_Counter*>();
 
 	template <typename T>
 	class Shared_Ptr

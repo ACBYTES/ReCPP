@@ -236,7 +236,7 @@ namespace ACBYTES
 		class Func<RT, Class, Post_Qualifiers::CONST>
 		{
 		public:
-			using funcType =  RT(Class::*)() const;
+			using funcType = RT(Class::*)() const;
 
 		private:
 			Class* _class;
@@ -428,6 +428,20 @@ namespace ACBYTES
 		* Wraps member function in a Func class.
 		* @param RT [Return Type of the Function].
 		* @param Class [Containing Class Type].
+		* @param ArgT [Type of the Arguments Passed to the Function].
+		* @param ClassPointer [Pointer to instance of Class].
+		* @param FunctionPointer [Target Function]
+		*/
+		template<typename RT, typename Class, typename... ArgT>
+		static auto WrapFunction(Class* ClassPointer, typename Function::Func<RT, Class, Post_Qualifiers::NONE, ArgT...>::funcType FunctionPointer)
+		{
+			return Function::Func<RT, Class, Post_Qualifiers::NONE, ArgT...>(ClassPointer, FunctionPointer);
+		}
+
+		/*
+		* Wraps member function in a Func class.
+		* @param RT [Return Type of the Function].
+		* @param Class [Containing Class Type].
 		* @param PQ [Post-qualifier for member function].
 		* @param ArgT [Type of the Arguments Passed to the Function].
 		* @param ClassPointer [Pointer to instance of Class].
@@ -437,20 +451,6 @@ namespace ACBYTES
 		static auto WrapFunction(Class* ClassPointer, typename Function::Func<RT, Class, PQ, ArgT...>::funcType FunctionPointer)
 		{
 			return Function::Func<RT, Class, PQ, ArgT...>(ClassPointer, FunctionPointer);
-		}
-
-		/*
-		* Wraps member function in a Func class.
-		* @param RT [Return Type of the Function].
-		* @param Class [Containing Class Type].
-		* @param ArgT [Type of the Arguments Passed to the Function].
-		* @param ClassPointer [Pointer to instance of Class].
-		* @param FunctionPointer [Target Function]
-		*/
-		template<typename RT, typename Class, typename... ArgT>
-		static auto WrapFunction(Class* ClassPointer, typename Function::Func<RT, Class, Post_Qualifiers::NONE, ArgT...>::funcType FunctionPointer)
-		{
-			return Function::Func<RT, Class, Post_Qualifiers::NONE, ArgT...>(ClassPointer, FunctionPointer);
 		}
 
 #if SHARED_PTR_FUNCTIONS

@@ -24,6 +24,7 @@
   <ItemGroup>
     <ClInclude Include="src\Functional\Function.h" />
     <ClInclude Include="src\Macro_Definitions\Definitions.h" />
+    <ClInclude Include="src\Memory\Deleter.h" />
     <ClInclude Include="src\Memory\Smart_Pointers.h" />
     <ClInclude Include="src\Type_Traits\Type_Traits.h" />
   </ItemGroup>

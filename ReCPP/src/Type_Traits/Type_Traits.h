@@ -1,3 +1,6 @@
+#ifndef TYPE_TRAITS_H
+#define TYPE_TRAITS_H
+
 #pragma once
 
 namespace ACBYTES
@@ -243,17 +246,6 @@ namespace ACBYTES
 	using remove_reference_t = typename remove_reference<T>::type;
 #pragma endregion remove_reference
 
-#pragma region base_type
-	template <typename T>
-	struct base_type
-	{
-		typedef typename remove_array<typename remove_cv<typename remove_reference<T>::type>::type>::type type;
-	};
-
-	template <typename T>
-	using base_type_t = typename base_type<T>::type;
-#pragma endregion base_type
-
 #pragma region Forward
 	template <typename T>
 	[[nodiscard]] constexpr T&& Forward(typename remove_reference<T>::type& R) noexcept
@@ -301,18 +293,19 @@ namespace ACBYTES
 
 #pragma region is_convertible_to
 	template <typename From, typename To>
-	struct is_convertible_to
+	struct is_convertible
 	{
 		static constexpr bool value = is_same<decltype((To)(*(static_cast<From*>(nullptr)))), To>::value;
 	};
 
 	template <typename T>
-	struct is_convertible_to<T, T>
+	struct is_convertible<T, T>
 	{
 		static constexpr bool value = true;
 	};
 
 	template <typename From, typename To>
-	static constexpr bool is_convertible_to_v = is_convertible_to<From, To>::value;
+	static constexpr bool is_convertible_v = is_convertible<From, To>::value;
 #pragma endregion is_convertible_to
 }
+#endif TYPE_TRAITS_H

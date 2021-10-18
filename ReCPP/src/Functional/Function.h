@@ -1,3 +1,6 @@
+#ifndef FUNCTION_H
+#define FUNCTION_H
+
 #pragma once
 
 #include "Smart_Pointers.h"
@@ -487,3 +490,4 @@ namespace ACBYTES
 #pragma endregion Func
 	};
 } //namespace ACBYTES
+#endif FUNCTION_H

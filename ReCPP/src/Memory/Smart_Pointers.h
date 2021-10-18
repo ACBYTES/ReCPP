@@ -1,3 +1,6 @@
+#ifndef SMART_POINTERS_H
+#define SMART_POINTERS_H
+
 #pragma once
 
 #include <initializer_list>
@@ -26,7 +29,14 @@ namespace ACBYTES
 		[[nodiscard]] Unique_Ptr(Unique_Ptr&& Rvr) noexcept
 		{
 			_ptr = Rvr._ptr;
-			Rvr._ptr = nullptr;
+			Rvr.Release();
+		}
+
+		template <typename T1, enable_if_t<is_base_of_v<T, T1>, bool> = false>
+		[[nodiscard]] Unique_Ptr(Unique_Ptr<T1>&& Rvr) noexcept
+		{
+			_ptr = (T*)Rvr.Get();
+			Rvr.Release();
 		}
 
 		~Unique_Ptr()
@@ -93,8 +103,7 @@ namespace ACBYTES
 		{
 			_ptr = Rvr._ptr;
 			size = Rvr.size;
-			Rvr._ptr = nullptr;
-			Rvr.size = 0;
+			Rvr.Release();
 		}
 
 		~Unique_Ptr()
@@ -116,6 +125,7 @@ namespace ACBYTES
 		void Release()
 		{
 			_ptr = nullptr;
+			size = 0;
 		}
 
 		void Reset(T* Ptr, size_t Size)
@@ -170,7 +180,7 @@ namespace ACBYTES
 	/*
 	* Makes unique pointer pointing to an array with the size passed.
 	*/
-	template <typename T, enable_if_t<is_array<T>::value, bool> = false>
+	template <typename T, enable_if_t<is_array_v<T>, bool> = false>
 	[[nodiscard]] auto Make_Unique(const size_t Size) -> Unique_Ptr<T>
 	{
 		using type = remove_array_t<T>;
@@ -181,7 +191,7 @@ namespace ACBYTES
 	/*
 	* Makes unique pointer pointing to an array initialized with the initializer list passed.
 	*/
-	template <typename T, enable_if_t<is_array<T>::value && !is_const<T>::value, bool> = false> //No const types allowed because the array is going to be filled with the initializer list.
+	template <typename T, enable_if_t<is_array_v<T> && !is_const_v<T>, bool> = false> //No const types allowed because the array is going to be filled with the initializer list.
 	[[nodiscard]] auto Make_Unique(std::initializer_list<remove_array_t<T>> List) -> Unique_Ptr<T>
 	{
 		using type = remove_array_t<T>;
@@ -196,7 +206,7 @@ namespace ACBYTES
 	/*
 	* Makes unique pointer pointing to an object of type T.
 	*/
-	template <typename T, typename... ArgT, enable_if_t<!is_array<T>::value, bool> = false>
+	template <typename T, typename... ArgT, enable_if_t<!is_array_v<T>, bool> = false>
 	[[nodiscard]] auto Make_Unique(ArgT... Arguments) -> Unique_Ptr<T>
 	{
 		auto _init = new T(Forward<ArgT>(Arguments)...);
@@ -386,7 +396,7 @@ namespace ACBYTES
 			Rvr._ptr = nullptr;
 		}
 
-		template <typename T1, enable_if_t<is_base_of<T, T1>::value, bool> = false>
+		template <typename T1, enable_if_t<is_base_of_v<T, T1>, bool> = false>
 		[[nodiscard]] Shared_Ptr(const Shared_Ptr<T1>& Ref)
 		{
 			_ptr = Ref.Get();
@@ -456,14 +466,6 @@ namespace ACBYTES
 			Rvr.size = 0;
 		}
 
-		template <typename T1, enable_if_t<is_base_of<remove_array_t<T>, remove_array_t<T1>>::value, bool> = false>
-		[[nodiscard]] Shared_Ptr(const Shared_Ptr<T1>& Ref)
-		{
-			_ptr = Ref.Get();
-			size = Ref.Size();
-			Shared_Ptr_Container::AddNewReference(_ptr, true);
-		}
-
 		~Shared_Ptr()
 		{
 			Shared_Ptr_Container::RemoveReference(_ptr);
@@ -494,7 +496,7 @@ namespace ACBYTES
 			Shared_Ptr_Container::AddNewReference(Ptr);
 
 			_ptr = Ptr;
-			size = size_t();
+			size = 0;
 		}
 
 		size_t Size() const
@@ -525,7 +527,7 @@ namespace ACBYTES
 	/*
 	* Makes shared pointer pointing to an array with the size passed.
 	*/
-	template <typename T, enable_if_t<is_array<T>::value, bool> = false>
+	template <typename T, enable_if_t<is_array_v<T>, bool> = false>
 	[[nodiscard]] auto Make_Shared(const size_t Size) -> Shared_Ptr<T>
 	{
 		using type = remove_array_t<T>;
@@ -536,7 +538,7 @@ namespace ACBYTES
 	/*
 	* Makes shared pointer pointing to an array initialized with the initializer list passed.
 	*/
-	template <typename T, enable_if_t<is_array<T>::value && !is_const<T>::value, bool> = false> //No const types allowed because the array is going to be filled with the initializer list.
+	template <typename T, enable_if_t<is_array_v<T> && !is_const_v<T>, bool> = false> //No const types allowed because the array is going to be filled with the initializer list.
 	[[nodiscard]] auto Make_Shared(std::initializer_list<remove_array_t<T>> List) -> Shared_Ptr<T>
 	{
 		using type = remove_array_t<T>;
@@ -551,7 +553,7 @@ namespace ACBYTES
 	/*
 	* Makes shared pointer pointing to an object of type T.
 	*/
-	template <typename T, typename... ArgT, enable_if_t<!is_array<T>::value, bool> = false>
+	template <typename T, typename... ArgT, enable_if_t<!is_array_v<T>, bool> = false>
 	[[nodiscard]] auto Make_Shared(ArgT... Arguments) -> Shared_Ptr<T>
 	{
 		auto _init = new T(Forward<ArgT>(Arguments)...);
@@ -566,13 +568,25 @@ namespace ACBYTES
 		T* _ptr = nullptr;
 
 	public:
-		Weak_Ptr(const Shared_Ptr<T>& Ref)
+		[[nodiscard]] Weak_Ptr() //Empty pointer
+		{
+		}
+
+		[[nodiscard]] Weak_Ptr(const Shared_Ptr<T>& Ref)
 		{
 			_ptr = Ref.Get();
 		}
 
-		Weak_Ptr() //Empty pointer
+		template <typename T1, enable_if_t<is_base_of_v<T, T1>, bool> = false>
+		[[nodiscard]] Weak_Ptr(const Shared_Ptr<T1>& Ref)
 		{
+			_ptr = (T*)Ref.Get();
+		}
+
+		template <typename T1, enable_if_t<is_base_of_v<T, T1>, bool> = false>
+		[[nodiscard]] Weak_Ptr(const Weak_Ptr<T1>& Ref)
+		{
+			_ptr = (T*)Ref._ptr;
 		}
 
 		[[nodiscard]] Weak_Ptr(Weak_Ptr&& Rvr) noexcept
@@ -616,15 +630,14 @@ namespace ACBYTES
 		size_t size;
 
 	public:
+		[[nodiscard]] Weak_Ptr() //Empty pointer
+		{
+		}
 
-		Weak_Ptr(const Shared_Ptr<T[]>& Ref)
+		[[nodiscard]] Weak_Ptr(const Shared_Ptr<T[]>& Ref)
 		{
 			_ptr = Ref.Get();
 			size = Ref.Size();
-		}
-
-		Weak_Ptr() //Empty pointer
-		{
 		}
 
 		[[nodiscard]] Weak_Ptr(Weak_Ptr&& Rvr) noexcept
@@ -661,6 +674,11 @@ namespace ACBYTES
 			return _ptr;
 		}
 
+		size_t Size() const
+		{
+			return size;
+		}
+
 		template <size_t ArrSize>
 		void Fill(T(&Array)[ArrSize])
 		{
@@ -677,3 +695,5 @@ namespace ACBYTES
 	};
 #pragma endregion Weak_Ptr
 }
+
+#endif SMART_POINTERS_H

@@ -35,5 +35,8 @@
     <ClInclude Include="src\Macro_Definitions\Definitions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Memory\Deleter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

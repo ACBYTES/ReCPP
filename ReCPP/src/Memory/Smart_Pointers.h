@@ -5,6 +5,7 @@
 
 #include <initializer_list>
 #include <vector>
+#include <mutex>
 #include "Definitions.h"
 #include "Type_Traits.h"
 
@@ -317,6 +318,8 @@ namespace ACBYTES
 		static std::vector<IShared_Ref_Counter*> references;
 		static const size_t reserve_size = 4;
 
+		static std::mutex referenceMutex;
+
 		static void CheckReserve()
 		{
 			references.reserve(references.capacity() - references.size() <= 2 ? reserve_size : 0);
@@ -328,6 +331,7 @@ namespace ACBYTES
 			if (Ptr)
 			{
 				CheckReserve();
+				std::lock_guard<std::mutex> mLock(referenceMutex);
 				for (auto i = references.begin(); i != references.end(); i++)
 				{
 					auto& ref = **i;
@@ -349,6 +353,7 @@ namespace ACBYTES
 		{
 			if (Ptr)
 			{
+				std::lock_guard<std::mutex> mLock(referenceMutex);
 				for (auto i = references.begin(); i != references.end(); i++)
 				{
 					auto& ref = **i;
@@ -367,6 +372,7 @@ namespace ACBYTES
 	};
 
 	std::vector<IShared_Ref_Counter*> Shared_Ptr_Container::references = std::vector<IShared_Ref_Counter*>();
+	std::mutex Shared_Ptr_Container::referenceMutex;
 
 	template <typename T>
 	class Shared_Ptr

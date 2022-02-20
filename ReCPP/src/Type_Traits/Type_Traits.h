@@ -291,7 +291,7 @@ namespace ACBYTES
 	static constexpr bool is_base_of_v = is_base_of<Base, Class>::value;
 #pragma endregion is_base_of
 
-#pragma region is_convertible_to
+#pragma region is_convertible
 	template <typename From, typename To>
 	struct is_convertible
 	{
@@ -306,6 +306,6 @@ namespace ACBYTES
 
 	template <typename From, typename To>
 	static constexpr bool is_convertible_v = is_convertible<From, To>::value;
-#pragma endregion is_convertible_to
+#pragma endregion is_convertible
 }
 #endif TYPE_TRAITS_H

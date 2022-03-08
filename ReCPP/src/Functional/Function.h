@@ -6,7 +6,8 @@
 #include "Smart_Pointers.h"
 #include "Type_Traits.h"
 
-//If enabled, function classes initialized with a shared pointer (ACBYTES::Shared_Ptr) will keep a copy of the shared pointer to avoid the function containing class from getting deleted. If initialized using the pure pointer constructor, shared pointer to the class will be initialized as an empty pointer.
+//If enabled, function classes initialized with a shared pointer (ACBYTES::Shared_Ptr) will keep a copy of the shared pointer to avoid the function containing class from getting deleted. If initialized using the raw pointer constructor, shared pointer to the class will be initialized as an empty pointer.
+//TODO [Remove the need of a preprocessor by specializing Function to carry these features out.]
 #define SHARED_PTR_FUNCTIONS 0
 
 namespace ACBYTES
